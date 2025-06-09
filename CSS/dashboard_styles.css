@@ -1,12 +1,12 @@
 /* General Dashboard Layout */
 .container {
     display: flex;
-    max-width: 1200px; /* Increased max-width for content */
-    margin: 20px auto;
+    width: 100%; /* Pastikan container mengambil lebar penuh dari parent-nya */
+    margin: 0 auto 20px auto; /* Margin atas 0 untuk menyatu dengan header, margin bawah 20px, auto untuk horizontal */
     background-color: #fff;
     border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); /* Pertahankan bayangan untuk efek visual yang bagus */
+    overflow: hidden; /* Penting untuk border-radius */
 }
 
 .sidebar {
@@ -16,6 +16,7 @@
     box-shadow: 2px 0 5px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0; /* Pastikan sidebar tidak menyusut di desktop */
 }
 
 .sidebar a {
@@ -32,9 +33,9 @@
 
 .sidebar a:hover,
 .sidebar a.active {
-    background-color: #e6f7e6;
-    border-left-color: #E5989B;
-    color: #E5989B;
+    background-color: #a2dba2ba;
+    border-left-color: #a2dba2ba;
+    color: #e69291;
 }
 .sidebar a i {
     font-size: 1.1em;
@@ -42,9 +43,10 @@
 
 
 .content {
-    flex-grow: 1;
+    flex-grow: 1; /* Konten akan mengisi sisa ruang yang tersedia */
     padding: 30px;
     background-color: #fff;
+    /* max-width di sini tidak diperlukan karena flex-grow: 1; sudah mengatur lebar */
 }
 
 /* Page Specific Panels */
@@ -54,6 +56,8 @@
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     margin-bottom: 25px;
+    width: 100%; /* Pastikan panel ini mengambil lebar penuh */
+    box-sizing: border-box; /* Pastikan padding dihitung dalam lebar */
 }
 
 /* Home Page Specifics */
@@ -69,7 +73,7 @@
     display: flex;
     justify-content: center;
     margin-bottom: 40px;
-    max-width: 700px;
+    max-width: 700px; /* Pertahankan max-width untuk search bar agar tidak terlalu lebar */
     margin-left: auto;
     margin-right: auto;
     border: 1px solid #c3d9c3;
@@ -108,6 +112,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Ukuran kartu lebih besar */
     gap: 30px; /* Jarak antar kartu lebih besar */
+    width: 100%; /* Pastikan grid ini mengambil lebar penuh yang tersedia */
 }
 
 /* Gaya Kartu Produk (Disamakan dengan store_profile.php) */
@@ -195,6 +200,7 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 30px;
     padding: 0 20px;
+    width: 100%; /* Pastikan grid ini mengambil lebar penuh yang tersedia */
 }
 
 .product-item-page .store-info-display {
@@ -486,9 +492,9 @@
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
-        margin: 10px auto;
+        margin: 0 auto; /* Margin atas 0 juga di mobile */
         border-radius: 0;
-        box-shadow: none;
+        box-shadow: none; /* Hilangkan bayangan di mobile */
     }
 
     .sidebar {
@@ -498,7 +504,13 @@
         overflow-x: auto; /* Enable scrolling if too many items */
         padding: 10px 0;
         justify-content: flex-start;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
     }
+    .sidebar::-webkit-scrollbar { /* Sembunyikan scrollbar di Webkit (Chrome, Safari) */
+        display: none;
+    }
+
 
     .sidebar a {
         border-left: none;
@@ -517,7 +529,7 @@
     }
 
     .search-bar {
-        border-radius: 10px; /* Make it more compact */
+        border-radius: 10px;
     }
     .search-bar input[type="text"] {
         width: 70%;

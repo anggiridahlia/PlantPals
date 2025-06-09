@@ -80,14 +80,6 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
 <body>
     <header>
         <h1><span class="emoji">🌿</span> PlantPals</h1>
-        <nav>
-            <a href="/PlantPals/dashboard.php?page=home" class="<?php echo ($page == 'home') ? 'active' : ''; ?>"><i class="fas fa-home"></i> Home</a>
-            <a href="/PlantPals/dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>"><i class="fas fa-seedling"></i> Produk</a>
-            <a href="/PlantPals/dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang</a>
-            <a href="/PlantPals/dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
-            <a href="/PlantPals/dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
-            <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
-        </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">
             <button class="logout-btn" type="submit" name="logout"><i class="fas fa-sign-out-alt"></i> Logout (<?php echo htmlspecialchars($username); ?>)</button>
         </form>

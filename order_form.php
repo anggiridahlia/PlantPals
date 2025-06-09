@@ -128,11 +128,11 @@ if (isset($matches[1])) {
 
         function calculateTotal() {
             const unitPrice = parseFloat(document.getElementById('rawProductPrice').value);
-            const quantity = parseInt(document.getElementById('quantity').value);
+            let quantity = parseInt(document.getElementById('quantity').value); // Use let for reassigning
 
             if (isNaN(quantity) || quantity < 1) {
-                document.getElementById('quantity').value = 1;
-                quantity = 1;
+                quantity = 1; // Set to 1 if invalid
+                document.getElementById('quantity').value = quantity; // Update input field
             }
 
             const total = unitPrice * quantity;

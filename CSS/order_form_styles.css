@@ -22,22 +22,34 @@
 }
 
 .order-form-container h2, .confirmation-container h2 {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Montserrat', sans-serif; /* Menggunakan Montserrat untuk judul */
     font-size: 2.5rem;
-    color: #4CAF50;
+    color: #3a5a20; /* Warna hijau tua untuk judul */
     margin-bottom: 30px;
     font-weight: 700;
 }
-
+/* Tambahan untuk judul di halaman konfirmasi */
 .confirmation-container h2.success {
-    color: #4CAF50;
+    color: #4CAF50; /* Green for success */
+    display: flex; /* Untuk ikon */
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 .confirmation-container h2.error {
-    color: #f44336;
+    color: #f44336; /* Red for error */
+    display: flex; /* Untuk ikon */
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.confirmation-container h2 i { /* Gaya ikon di judul konfirmasi */
+    font-size: 1em;
 }
 
+
 .order-summary, .confirmation-container p {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif; /* Menggunakan Poppins untuk teks */
     font-size: 1.1rem;
     line-height: 1.7;
     margin-bottom: 25px;
@@ -58,7 +70,17 @@
 }
 
 .order-summary p strong {
-    color: #388e3c;
+    color: #3a5a20; /* Warna hijau tua konsisten */
+}
+
+.total-price-display {
+    font-size: 1.6em; /* Ukuran font lebih besar */
+    font-weight: bold;
+    color: #E5989B; /* Warna pinkish */
+    margin-top: 25px; /* Margin lebih besar */
+    text-align: right;
+    border-top: 2px solid #e0e0e0; /* Border lebih tebal */
+    padding-top: 20px; /* Padding lebih besar */
 }
 
 .form-group {
@@ -67,9 +89,9 @@
 
 .form-group label {
     display: block;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif; /* Menggunakan Poppins */
     font-size: 1.1rem;
-    color: #424242;
+    color: #3a5a20; /* Warna hijau tua konsisten */
     margin-bottom: 10px;
     font-weight: 500;
 }
@@ -77,6 +99,7 @@
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="tel"],
+.form-group input[type="number"], /* Tambahkan ini jika ada input number */
 .form-group textarea {
     width: 100%;
     padding: 14px;
@@ -87,14 +110,14 @@
     background-color: #fafafa;
     transition: border-color 0.3s ease, box-shadow 0.2s ease;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif; /* Menggunakan Poppins */
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
-    border-color: #FF7043;
+    border-color: #E5989B; /* Warna fokus pinkish */
     outline: none;
-    box-shadow: 0 0 0 4px rgba(255, 112, 67, 0.2), inset 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 0 0 4px rgba(229, 152, 155, 0.2), inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .form-group textarea {
@@ -105,7 +128,7 @@
 .submit-btn {
     width: 100%;
     padding: 18px 30px;
-    background-color: #4CAF50;
+    background-color: #E5989B; /* Warna pinkish utama */
     color: white;
     border: none;
     border-radius: 12px;
@@ -113,14 +136,14 @@
     font-size: 1.35rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
-    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 6px 15px rgba(229, 152, 155, 0.25); /* Shadow pinkish */
+    font-family: 'Montserrat', sans-serif; /* Menggunakan Montserrat */
 }
 
 .submit-btn:hover {
-    background-color: #388e3c;
+    background-color: rgb(182, 88, 117); /* Darker pink */
     transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.35);
+    box-shadow: 0 8px 20px rgba(182, 88, 117, 0.35);
 }
 
 .back-to-dashboard-btn {
@@ -128,7 +151,7 @@
     width: fit-content;
     margin: 30px auto 0 auto;
     padding: 15px 30px;
-    background-color: #FF7043;
+    background-color: #3a5a20; /* Warna hijau tua */
     color: white;
     border: none;
     border-radius: 12px;
@@ -137,14 +160,18 @@
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     text-decoration: none;
-    box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
-    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 6px 15px rgba(58, 90, 32, 0.25); /* Shadow hijau */
+    font-family: 'Poppins', sans-serif; /* Menggunakan Poppins */
+    display: flex; /* Untuk ikon */
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .back-to-dashboard-btn:hover {
-    background-color: #f4511e;
+    background-color: #2f4d3a; /* Darker hijau */
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(255, 112, 67, 0.35);
+    box-shadow: 0 8px 20px rgba(47, 77, 58, 0.35);
 }
 
 /* Order Confirmation Details */
@@ -159,9 +186,9 @@
 }
 
 .order-details-summary h3 {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Montserrat', sans-serif; /* Menggunakan Montserrat */
     font-size: 1.4rem;
-    color: #4CAF50;
+    color: #3a5a20; /* Warna hijau tua */
     margin-bottom: 15px;
     border-bottom: 1px solid #e0e0e0;
     padding-bottom: 10px;
@@ -171,13 +198,13 @@
     font-size: 1rem;
     margin-bottom: 8px;
     line-height: 1.5;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif; /* Menggunakan Poppins */
 }
 
 .order-details-summary p strong {
     display: inline-block;
     min-width: 150px;
-    color: #388e3c;
+    color: #3a5a20; /* Warna hijau tua */
 }
 .order-details-summary p span {
     word-wrap: break-word;

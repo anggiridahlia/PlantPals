@@ -31,27 +31,35 @@ body {
     display: flex;
     flex-wrap: wrap; /* Allow columns to wrap */
     justify-content: center;
-    gap: 30px;
-    padding: 20px;
-    max-width: 1200px;
+    padding-top: 20px; /* Pertahankan padding atas */
+    padding-bottom: 20px; /* Pertahankan padding bawah */
+    max-width: 100%;
     margin: 0 auto;
+    box-shadow: none;
+    border-radius: 0;
 }
 
 .flower-details-column,
-.purchase-column {
+.purchase-column,
+.recommended-flowers-section-container { /* Tambahkan ini agar gaya shadow dan padding tetap ada */
     background: #fff;
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    flex: 1; /* Allow columns to grow */
-    min-width: 300px; /* Minimum width before wrapping */
+    margin: 0 15px 30px 15px; /* Memberi jarak horizontal antar kolom, dan margin bawah */
+    box-sizing: border-box;
 }
 
+
 .flower-details-column {
+    flex: 1; /* Allow columns to grow */
+    min-width: 300px; /* Minimum width before wrapping */
     max-width: 650px; /* Lebar maksimum untuk kolom detail */
     text-align: center;
 }
 .purchase-column {
+    flex: 1; /* Allow columns to grow */
+    min-width: 300px; /* Minimum width before wrapping */
     max-width: 350px; /* Lebar maksimum untuk kolom pembelian */
     display: flex;
     flex-direction: column;
@@ -207,9 +215,15 @@ body {
 
 /* Recommended Flowers Section */
 .recommended-flowers-section-container {
-    padding: 40px;
-    margin-top: 40px;
+    padding: 40px; /* Pertahankan padding internal */
+    margin-top: 40px; /* Margin atas untuk memisahkan dari konten di atasnya */
+    /* Properti lain sudah ada di card-panel */
+    width: calc(100% - 30px); /* UBAH: Tambahkan lebar penuh (100% - margin horizontal) */
+    margin-left: 15px; /* UBAH: Memberi jarak ke kiri */
+    margin-right: 15px; /* UBAH: Memberi jarak ke kanan */
+    box-sizing: border-box; /* UBAH: Pastikan padding dihitung dalam lebar */
 }
+
 .recommended-flowers-section-container .section-heading {
     font-size: 2.5rem;
     color: #3a5a20;
@@ -232,28 +246,29 @@ body {
 
 .recommended-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Lebih kecil agar muat banyak */
+    /* UBAH: Tingkatkan minmax agar kolom lebih lebar, dan izinkan lebih banyak kolom */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Dari 200px menjadi 220px, lebih banyak kolom */
     gap: 25px;
 }
 
-.recommended-item.card { /* Re-using .card styles */
+.recommended-item.card {
     display: flex;
     flex-direction: column;
     text-align: center;
     text-decoration: none;
     color: #333;
-    padding: 0; /* Remove default card padding */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Less shadow than main cards */
+    padding: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 .recommended-item.card:hover {
-    transform: translateY(-5px); /* Less dramatic hover */
+    transform: translateY(-5px);
     box-shadow: 0 8px 18px rgba(0,0,0,0.1);
 }
 .recommended-item.card img {
     width: 100%;
     height: 150px;
     object-fit: cover;
-    border-radius: 10px 10px 0 0; /* Rounded top corners */
+    border-radius: 10px 10px 0 0;
     border-bottom: 1px solid #f0f0f0;
 }
 .recommended-item.card h4 {
@@ -268,17 +283,17 @@ body {
     color: #E5989B;
 }
 .recommended-item .view-button {
-    display: flex; /* For icon */
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    background-color: #f0f8ff; /* Light background for button */
+    background-color: #f0f8ff;
     color: #E5989B;
     padding: 10px;
     border-top: 1px solid #e0e0e0;
     font-weight: 600;
     transition: background-color 0.3s ease, color 0.3s ease;
-    border-radius: 0 0 12px 12px; /* Rounded bottom corners */
+    border-radius: 0 0 12px 12px;
 }
 .recommended-item .view-button:hover {
     background-color: #E5989B;
@@ -292,7 +307,7 @@ body {
     text-align: center;
 }
 .back-btn {
-    display: inline-flex; /* For icon */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -315,11 +330,14 @@ body {
     .main-content-area {
         flex-direction: column;
         align-items: center;
-        padding: 20px;
+        padding: 0;
+        margin: 0 auto;
     }
-    .flower-details-column, .purchase-column {
-        width: 100%;
-        max-width: 600px; /* Keep a max-width for readability */
+    .flower-details-column, .purchase-column, .recommended-flowers-section-container {
+        width: calc(100% - 30px); /* Hitung lebar dengan mempertimbangkan margin horizontal */
+        max-width: 600px;
+        margin-left: 15px; /* Memberi jarak ke kiri di mobile */
+        margin-right: 15px; /* Memberi jarak ke kanan di mobile */
         margin-bottom: 30px;
     }
     .flower-details-column img {
@@ -345,7 +363,7 @@ body {
     }
     .detail-item {
         font-size: 1em;
-        flex-direction: column; /* Stack label and value vertically */
+        flex-direction: column;
         align-items: flex-start;
         gap: 5px;
     }
@@ -354,7 +372,7 @@ body {
         width: 100%;
     }
     .detail-item .detail-value {
-        padding-left: 30px; /* Indent value slightly */
+        padding-left: 30px;
     }
     .purchase-column .price-display {
         font-size: 2.2rem;
@@ -387,8 +405,12 @@ body {
         margin-top: 20px;
         margin-bottom: 20px;
     }
+    /* Dihapus: padding dari .flower-details-column, .purchase-column, .recommended-flowers-section-container */
+    /* Karena padding sudah diatur di desktop dan margin horizontal sudah diterapkan. */
     .flower-details-column, .purchase-column, .recommended-flowers-section-container {
-        padding: 20px;
+        /* padding: 20px; <--- Dihapus atau diatur ulang sesuai keinginan */
+        margin-left: 10px; /* Sesuaikan margin agar tidak terlalu rapat ke tepi layar */
+        margin-right: 10px;
     }
     .flower-details-column h3, .purchase-column .section-heading {
         font-size: 1.6rem;
@@ -410,12 +432,14 @@ body {
         font-size: 1.6rem;
     }
     .recommended-grid {
-        grid-template-columns: 1fr; /* Single column */
+        /* UBAH: Untuk tampilan sangat kecil, kembali ke 1 kolom, tapi dengan margin */
+        grid-template-columns: 1fr;
         gap: 10px;
     }
     .recommended-item.card {
         flex-direction: row; /* Horizontal layout for recommended items */
         text-align: left;
+        align-items: center; /* Align items vertically in center */
     }
     .recommended-item.card img {
         width: 100px;
@@ -423,6 +447,7 @@ body {
         border-radius: 10px;
         margin-right: 10px;
         border-bottom: none;
+        flex-shrink: 0;
     }
     .recommended-item.card h4 {
         font-size: 1.1em;
@@ -435,7 +460,7 @@ body {
     .recommended-item .view-button {
         display: none; /* Hide button on very small screens, make whole card clickable */
     }
-    .recommended-item.card .card-content { /* Adjust padding for row layout */
+    .recommended-item.card .card-content {
         padding: 10px;
         flex-grow: 1;
         display: flex;

@@ -336,14 +336,6 @@ mysqli_close($conn); // Close connection after all data fetching
 <body>
     <header>
         <h1><span class="emoji">🌿</span> PlantPals</h1>
-        <nav>
-            <a href="/PlantPals/dashboard.php?page=home"><i class="fas fa-home"></i> Home</a>
-            <a href="/PlantPals/dashboard.php?page=products"><i class="fas fa-seedling"></i> Produk</a>
-            <a href="/PlantPals/dashboard.php?page=cart"><i class="fas fa-shopping-cart"></i> Keranjang</a>
-            <a href="/PlantPals/dashboard.php?page=orders"><i class="fas fa-box-open"></i> Pesanan Saya</a>
-            <a href="/PlantPals/dashboard.php?page=profile"><i class="fas fa-user-circle"></i> Profil</a>
-            <a href="/PlantPals/dashboard.php?page=contact"><i class="fas fa-envelope"></i> Kontak</a>
-        </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">
             <button class="logout-btn" type="submit" name="logout"><i class="fas fa-sign-out-alt"></i> Logout (<?php echo htmlspecialchars($username); ?>)</button>
         </form>

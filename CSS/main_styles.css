@@ -18,6 +18,7 @@ body {
     flex-direction: column;
 }
 
+
 /* Headings will use Montserrat */
 h1, h2, h3, h4, h5, h6, .section-heading, .section-sub-title {
     font-family: 'Montserrat', sans-serif;
@@ -31,14 +32,14 @@ a {
 }
 
 a:hover {
-    color: rgb(182, 88, 117); /* Darker pink on hover */
+    color: rgb(223, 135, 163); /* Darker pink on hover */
     text-decoration: underline;
 }
 
 /* Header styles */
 header {
-    background-color: #3a5a20; /* Darker green */
-    color: white;
+    background-color: hsl(0, 85%, 79%); /* Darker green */
+    color: rgba(211, 227, 200, 0.86);
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
@@ -61,29 +62,13 @@ header h1 .emoji {
     line-height: 1; /* Align emoji with text */
 }
 
+/* NAVIGASI HEADER DIHAPUS DARI SINI UNTUK MENCEGAH DUPLIKASI DENGAN SIDEBAR */
 header nav {
-    display: flex;
-    flex-wrap: wrap; /* Allow nav items to wrap */
-    gap: 10px; /* Spacing between nav links */
-    flex-grow: 1; /* Allow nav to take available space */
-    justify-content: center; /* Center nav items */
+    /* Dihapus atau disembunyikan untuk halaman pembeli */
+    display: none; /* Sembunyikan navigasi header untuk dashboard pembeli */
 }
+/* Hanya akan muncul di halaman non-dashboard seperti login/register/unauthorized */
 
-header nav a {
-    color: white;
-    text-decoration: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-    display: flex; /* For icon alignment */
-    align-items: center;
-    gap: 5px; /* Space between icon and text */
-}
-
-header nav a:hover {
-    background-color: #55803a; /* Lighter green on hover */
-    text-decoration: none;
-}
 
 .logout-btn {
     background-color: #E5989B; /* Pinkish color for logout */
@@ -199,15 +184,9 @@ footer {
         margin-bottom: 10px;
     }
 
+    /* Di sini, navigasi header disembunyikan dan akan diganti oleh sidebar responsive */
     header nav {
-        flex-direction: column; /* Stack nav items vertically */
-        align-items: center;
-        width: 100%;
-    }
-    header nav a {
-        width: 100%;
-        text-align: center;
-        padding: 10px 15px;
+        display: none; /* Pastikan tidak muncul di mobile dashboard */
     }
 
     .logout-btn {

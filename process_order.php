@@ -131,10 +131,12 @@ if ($success) {
     mysqli_commit($conn);
     $confirmation_message = "Pesanan Anda berhasil dikonfirmasi!";
     $confirmation_status_class = "success";
+    $icon_class = "fas fa-check-circle"; // Icon for success
 } else {
     mysqli_rollback($conn);
     $confirmation_message = "Terjadi kesalahan saat memproses pesanan Anda. Mohon coba lagi.";
     $confirmation_status_class = "error";
+    $icon_class = "fas fa-times-circle"; // Icon for error
     // Error logging is already done above.
 }
 
@@ -150,6 +152,7 @@ mysqli_close($conn);
     <title>Konfirmasi Pesanan - PlantPals</title>
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/order_form_styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <header>
@@ -162,7 +165,7 @@ mysqli_close($conn);
     <div class="main-content-wrapper-form">
         <div class="confirmation-container">
             <h2 class="<?php echo $confirmation_status_class; ?>">
-                <?php echo ($confirmation_status_class == 'success') ? '🎉 Pesanan Terkonfirmasi! 🎉' : '❌ Gagal Memproses Pesanan ❌'; ?>
+                <i class="<?php echo $icon_class; ?>"></i> <?php echo ($confirmation_status_class == 'success') ? 'Pesanan Terkonfirmasi!' : 'Gagal Memproses Pesanan'; ?>
             </h2>
             <p><?php echo $confirmation_message; ?></p>
 
