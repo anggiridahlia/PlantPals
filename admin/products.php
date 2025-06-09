@@ -1,5 +1,9 @@
 <?php
 session_start();
+ini_set('display_errors', 1); // Aktifkan tampilan error di browser
+ini_set('display_startup_errors', 1); // Aktifkan tampilan error saat startup
+error_reporting(E_ALL); // Melaporkan semua jenis error
+
 include '../includes/auth_middleware.php';
 require_role('admin');
 require_once '../config.php';
@@ -17,6 +21,16 @@ if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     }
 }
 
+// Fetch sellers for dropdown (needed for both add and edit form)
+$sellers = [];
+$sql_sellers = "SELECT id, username FROM users WHERE role = 'seller' ORDER BY username ASC";
+$result_sellers = mysqli_query($conn, $sql_sellers);
+if ($result_sellers) {
+    while ($row_seller = mysqli_fetch_assoc($result_sellers)) {
+        $sellers[] = $row_seller;
+    }
+}
+
 // Handle form submission for ADD/EDIT/DELETE
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST['action'] ?? '';
@@ -25,15 +39,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $product_id = isset($_POST['product_id']) ? $_POST['product_id'] : null;
         $name = trim($_POST['name']);
         $img = trim($_POST['img']);
-        $scientific_name = trim($_POST['scientific_name']);
-        $family = trim($_POST['family']);
-        $description = trim($_POST['description']);
-        $habitat = trim($_POST['habitat']);
-        $care_instructions = trim($_POST['care_instructions']);
-        $unique_fact = trim($_POST['unique_fact']);
+        $scientific_name = trim($_POST['scientific_name'] ?? '');
+        $family = trim($_POST['family'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $habitat = trim($_POST['habitat'] ?? '');
+        $care_instructions = trim($_POST['care_instructions'] ?? '');
+        $unique_fact = trim($_POST['unique_fact'] ?? '');
         $price = floatval($_POST['price']);
         $stock = intval($_POST['stock']);
         $seller_id = intval($_POST['seller_id']); // Admin can assign seller
+
+        // Basic validation for required fields
+        if (empty($name) || empty($img) || !is_numeric($price) || $price < 0 || !is_numeric($stock) || $stock < 0 || empty($seller_id)) {
+            echo "<script>alert('Nama Produk, URL Gambar, Harga (harus angka positif), Stok (harus angka positif), dan Penjual wajib diisi dengan benar.'); window.history.back();</script>";
+            exit;
+        }
 
         if ($action == 'add') {
             $sql = "INSERT INTO products (name, img, scientific_name, family, description, habitat, care_instructions, unique_fact, price, stock, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -44,23 +64,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt = mysqli_prepare($conn, $sql);
             mysqli_stmt_bind_param($stmt, "ssssssssddii", $name, $img, $scientific_name, $family, $description, $habitat, $care_instructions, $unique_fact, $price, $stock, $seller_id, $product_id);
         }
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-        header("Location: products.php");
-        exit;
+        
+        // Cek eksekusi statement dan tangani error
+        if (mysqli_stmt_execute($stmt)) {
+            // Berhasil
+            header("Location: products.php");
+            exit;
+        } else {
+            // Tangani error database
+            error_log("Error inserting/updating product in admin/products.php: " . mysqli_stmt_error($stmt));
+            echo "<script>alert('Terjadi kesalahan saat menyimpan produk ke database. Mohon coba lagi atau hubungi administrator.'); window.history.back();</script>";
+            exit;
+        }
 
+        mysqli_stmt_close($stmt); // Tutup statement setelah eksekusi, terlepas dari sukses/gagal
     } elseif ($action == 'delete') {
         $product_id = intval($_POST['product_id']);
         $stmt = mysqli_prepare($conn, "DELETE FROM products WHERE id = ?");
         mysqli_stmt_bind_param($stmt, "i", $product_id);
-        mysqli_stmt_execute($stmt);
+        
+        // Cek eksekusi statement delete
+        if (mysqli_stmt_execute($stmt)) {
+            header("Location: products.php");
+            exit;
+        } else {
+            error_log("Error deleting product in admin/products.php: " . mysqli_stmt_error($stmt));
+            echo "<script>alert('Terjadi kesalahan saat menghapus produk. Mohon coba lagi.'); window.history.back();</script>";
+            exit;
+        }
         mysqli_stmt_close($stmt);
-        header("Location: products.php");
-        exit;
     }
 }
 
-// Fetch all products for display
+// Fetch all products for display (after any modifications)
 $products = [];
 $sql = "SELECT p.*, u.username as seller_username FROM products p LEFT JOIN users u ON p.seller_id = u.id ORDER BY p.id DESC";
 $result = mysqli_query($conn, $sql);
@@ -70,19 +106,19 @@ if ($result) {
     }
 }
 
-// Fetch all sellers for dropdown
-$sellers = [];
-$sql_sellers = "SELECT id, username FROM users WHERE role = 'seller' ORDER BY username ASC";
-$result_sellers = mysqli_query($conn, $sql_sellers);
-if ($result_sellers) {
-    while ($row_seller = mysqli_fetch_assoc($result_sellers)) {
-        $sellers[] = $row_seller;
-    }
-}
-
 mysqli_close($conn);
 ?>
-<?php include '../includes/header.php'; ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Produk Admin - PlantPals</title>
+    <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
+    <link rel="stylesheet" href="/PlantPals/css/admin_seller_styles.css">
+</head>
+<body>
+    <?php include '../includes/header.php'; ?>
 
     <h1>Manajemen Produk</h1>
 
@@ -91,57 +127,57 @@ mysqli_close($conn);
         <form action="products.php" method="post">
             <input type="hidden" name="action" value="<?php echo $product_to_edit ? 'edit' : 'add'; ?>">
             <input type="hidden" name="product_id" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['id']) : ''; ?>">
-            
+
             <div class="form-group">
                 <label for="name">Nama Produk:</label>
                 <input type="text" id="name" name="name" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['name']) : ''; ?>" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="img">URL Gambar (assets/...):</label>
                 <input type="text" id="img" name="img" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['img']) : ''; ?>" required>
             </div>
-            
+
             <div class="form-group">
-                <label for="scientific_name">Nama Ilmiah:</label>
-                <input type="text" id="scientific_name" name="scientific_name" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['scientific_name'] ?? '') : ''; ?>">
+                <label for="scientific_name">Nama Ilmiah (Opsional):</label>
+                <input type="text" id="scientific_name" name="scientific_name" value="<?php echo htmlspecialchars($product_to_edit['scientific_name'] ?? ''); ?>">
             </div>
-            
+
             <div class="form-group">
-                <label for="family">Familia:</label>
-                <input type="text" id="family" name="family" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['family'] ?? '') : ''; ?>">
+                <label for="family">Familia (Opsional):</label>
+                <input type="text" id="family" name="family" value="<?php echo htmlspecialchars($product_to_edit['family'] ?? ''); ?>">
             </div>
-            
+
             <div class="form-group">
-                <label for="description">Deskripsi:</label>
-                <textarea id="description" name="description"><?php echo $product_to_edit ? htmlspecialchars($product_to_edit['description'] ?? '') : ''; ?></textarea>
+                <label for="description">Deskripsi (Opsional):</label>
+                <textarea id="description" name="description"><?php echo htmlspecialchars($product_to_edit['description'] ?? ''); ?></textarea>
             </div>
-            
+
             <div class="form-group">
-                <label for="habitat">Habitat:</label>
-                <textarea id="habitat" name="habitat"><?php echo $product_to_edit ? htmlspecialchars($product_to_edit['habitat'] ?? '') : ''; ?></textarea>
+                <label for="habitat">Habitat (Opsional):</label>
+                <textarea id="habitat" name="habitat"><?php echo htmlspecialchars($product_to_edit['habitat'] ?? ''); ?></textarea>
             </div>
-            
+
             <div class="form-group">
-                <label for="care_instructions">Instruksi Perawatan:</label>
-                <textarea id="care_instructions" name="care_instructions"><?php echo $product_to_edit ? htmlspecialchars($product_to_edit['care_instructions'] ?? '') : ''; ?></textarea>
+                <label for="care_instructions">Instruksi Perawatan (Opsional):</label>
+                <textarea id="care_instructions" name="care_instructions"><?php echo htmlspecialchars($product_to_edit['care_instructions'] ?? ''); ?></textarea>
             </div>
-            
+
             <div class="form-group">
-                <label for="unique_fact">Fakta Unik:</label>
-                <textarea id="unique_fact" name="unique_fact"><?php echo $product_to_edit ? htmlspecialchars($product_to_edit['unique_fact'] ?? '') : ''; ?></textarea>
+                <label for="unique_fact">Fakta Unik (Opsional):</label>
+                <textarea id="unique_fact" name="unique_fact"><?php echo htmlspecialchars($product_to_edit['unique_fact'] ?? ''); ?></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label for="price">Harga (Rp):</label>
-                <input type="number" id="price" name="price" step="0.01" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['price']) : ''; ?>" required>
+                <input type="number" id="price" name="price" step="0.01" value="<?php echo htmlspecialchars($product_to_edit['price'] ?? ''); ?>" required min="0">
             </div>
-            
+
             <div class="form-group">
                 <label for="stock">Stok:</label>
-                <input type="number" id="stock" name="stock" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['stock']) : ''; ?>" required>
+                <input type="number" id="stock" name="stock" value="<?php echo htmlspecialchars($product_to_edit['stock'] ?? ''); ?>" required min="0">
             </div>
-            
+
             <div class="form-group">
                 <label for="seller_id">Penjual:</label>
                 <select id="seller_id" name="seller_id" required>
@@ -158,7 +194,7 @@ mysqli_close($conn);
                 <?php if ($product_to_edit): ?>
                     <a href="products.php" class="cancel-btn btn-link">Batal Edit</a>
                 <?php endif; ?>
-                <button type="submit" class="submit-btn"><?php echo $product_to_edit ? 'Update Produk' : 'Tambah Produk'; ?></button>
+                <button type="submit" class="btn-primary"><?php echo $product_to_edit ? 'Update Produk' : 'Tambah Produk'; ?></button>
             </div>
         </form>
     </div>

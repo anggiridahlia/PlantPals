@@ -1,10 +1,10 @@
 <?php
 session_start();
-include '../includes/auth_middleware.php';
-require_role('admin');
-require_once '../config.php';
+include '../includes/auth_middleware.php'; // Path relatif ke middleware
+require_role('admin'); // Peran yang dibutuhkan untuk halaman ini
+require_once '../config.php'; // Path relatif ke config
 
-// Fetch some summary data for admin dashboard
+// Ambil data yang diperlukan untuk halaman ini dari database
 $total_users = 0;
 $total_products = 0;
 $total_orders = 0;

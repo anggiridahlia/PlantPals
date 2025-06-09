@@ -49,7 +49,27 @@ session_start();
 <body>
     <h1>Akses Tidak Diizinkan!</h1>
     <p>Anda tidak memiliki izin untuk mengakses halaman ini.</p>
-    <a href="dashboard.php">Kembali ke Dashboard</a>
+    <?php
+    // Determine where to redirect based on user role, or default to login
+    $redirect_url = 'login.php';
+    if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
+        if (isset($_SESSION['role'])) {
+            switch ($_SESSION['role']) {
+                case 'admin':
+                    $redirect_url = 'admin/index.php';
+                    break;
+                case 'seller':
+                    $redirect_url = 'seller/index.php';
+                    break;
+                case 'buyer':
+                default:
+                    $redirect_url = 'dashboard.php';
+                    break;
+            }
+        }
+    }
+    ?>
+    <a href="<?php echo htmlspecialchars($redirect_url); ?>">Kembali ke Dashboard</a>
     <a href="logout.php" style="margin-left: 15px;">Logout</a>
 </body>
 </html>

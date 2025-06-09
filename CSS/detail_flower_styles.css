@@ -1,0 +1,373 @@
+/* PlantPals Detail Flower Specific Styles */
+
+/* --- Page Title (under header, specific for detail_flower.php) --- */
+.page-main-title {
+    font-family: 'Roboto', sans-serif;
+    font-size: 3rem;
+    margin: 40px auto;
+    color: #4CAF50;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.02em;
+    width: 100%;
+    padding: 0 20px;
+}
+
+/* --- Main Content Area (Full Width, Two Columns) --- */
+.main-content-area {
+    flex: 1;
+    display: flex;
+    width: 100%;
+    padding: 0 40px;
+    gap: 40px;
+    margin-bottom: 40px;
+    box-sizing: border-box;
+    align-items: flex-start;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Card Styling (General for all panels) --- */
+.card-panel {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    padding: 30px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Left Column: Flower Details (Takes 60% of available space) --- */
+.flower-details-column {
+    flex: 3;
+    min-width: 500px;
+    max-width: 65%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.flower-details-column img {
+    width: 100%;
+    max-width: 600px;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 35px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.flower-details-column h3 {
+    font-family: 'Roboto', sans-serif;
+    font-size: 3rem;
+    margin-bottom: 30px;
+    color: #4CAF50;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.flower-details-column .detail-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 18px;
+    font-size: 1.2rem;
+    color: #424242;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.flower-details-column .detail-label {
+    font-weight: 600;
+    color: #4CAF50;
+    min-width: 180px;
+    text-align: left;
+    padding-right: 20px;
+    flex-shrink: 0;
+}
+
+.flower-details-column .detail-value {
+    flex: 1;
+    text-align: left;
+    line-height: 1.7;
+}
+
+/* --- Right Column: Purchase (Takes 40% of available space) --- */
+.purchase-column {
+    flex: 2;
+    min-width: 400px;
+    max-width: 35%;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* --- Section Titles within Panels --- */
+.card-panel .section-heading {
+    font-family: 'Roboto', sans-serif;
+    font-size: 2.2rem;
+    color: #4CAF50;
+    margin-bottom: 25px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* --- Purchase Section Specific Styles --- */
+.purchase-section .price-display {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #FF7043;
+    margin-bottom: 35px;
+    text-align: center;
+    letter-spacing: -0.03em;
+}
+
+.store-selection-detail label {
+    font-family: 'Open Sans', sans-serif;
+    display: block;
+    font-size: 1.2rem;
+    color: #424242;
+    margin-bottom: 15px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.store-selection-detail select {
+    width: 100%;
+    padding: 18px;
+    border: 1px solid #bdbdbd;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    background-color: #fafafa;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23424242%22%20d%3D%22M287%2C197.3L159.2%2C69.5c-4.4-4.4-11.4-4.4-15.8%2C0L5.4%2C197.3c-4.4%2C4.4-4.4%2C11.4%2C0%2C15.8c4.4%2C4.4%2C11.4%2C4.4%2C15.8%2C0l135.9-135.9l135.9%2C135.9c4.4%2C4.4%2C11.4%2C4.4%2C15.8%2C0C291.4%2C208.7%2C291.4%2C201.7%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 20px top 50%;
+    background-size: 16px auto;
+    padding-right: 45px;
+    transition: border-color 0.3s ease, box-shadow 0.2s ease;
+}
+
+.store-selection-detail select:hover { border-color: #9e9e9e; }
+.store-selection-detail select:focus { border-color: #FF7043; outline: none; box-shadow: 0 0 0 4px rgba(255, 112, 67, 0.25); }
+
+.buy-button-detail {
+    width: 100%;
+    padding: 20px 30px;
+    background-color: #FF7043;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.45rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
+    font-family: 'Roboto', sans-serif;
+}
+
+.buy-button-detail:hover {
+    background-color: #f4511e;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(255, 112, 67, 0.35);
+}
+
+/* --- Recommended Flowers Section (Now full-width below columns) --- */
+.recommended-flowers-section-container {
+    width: 100%;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.recommended-flowers-section-container .section-heading {
+    margin-bottom: 30px;
+}
+
+.recommended-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 30px;
+    justify-content: center;
+}
+
+.recommended-item {
+    background: #fcfcfc;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.07);
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    width: 100%;
+}
+
+.recommended-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.recommended-item img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.recommended-item h4 {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.3rem;
+    color: #4CAF50;
+    margin-bottom: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.recommended-item .price {
+    font-weight: 700;
+    color: #FF7043;
+    font-size: 1.15rem;
+    margin-bottom: 18px;
+}
+
+.recommended-item .view-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: 95%;
+    display: block;
+    font-family: 'Roboto', sans-serif;
+}
+
+.recommended-item .view-button:hover {
+    background-color: #388e3c;
+}
+
+/* --- Back Button --- */
+.back-btn-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.back-btn {
+    padding: 15px 30px;
+    background-color: #FF7043;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
+    font-family: 'Roboto', sans-serif;
+}
+.back-btn:hover {
+    background-color: #f4511e;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 112, 67, 0.35);
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1200px) {
+    .page-main-title { font-size: 2.8rem; }
+    .main-content-area { padding: 0 30px; gap: 30px; }
+    .flower-details-column { min-width: 450px; }
+    .purchase-column { min-width: 350px; }
+    .flower-details-column img { height: 350px; }
+    .flower-details-column h3 { font-size: 2.5rem; }
+    .flower-details-column .detail-item { font-size: 1.1rem; }
+    .flower-details-column .detail-label { min-width: 170px; }
+    .card-panel { padding: 25px; }
+    .section-heading { font-size: 2rem; }
+    .purchase-section .price-display { font-size: 2.5rem; }
+    .store-selection-detail select { padding: 16px; font-size: 1.1rem; }
+    .buy-button-detail { padding: 18px; font-size: 1.3rem; }
+    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; }
+    .recommended-item img { height: 120px; }
+    .recommended-item h4 { font-size: 1.2rem; }
+    .recommended-item .price { font-size: 1.1rem; }
+    .recommended-item .view-button { padding: 10px 18px; font-size: 1rem; }
+    .back-btn-container { margin-top: 30px; margin-bottom: 30px; }
+}
+
+@media (max-width: 992px) { /* Tablet / Medium screens */
+    .main-content-area { flex-direction: column; align-items: center; padding: 0 20px; gap: 30px; }
+    .flower-details-column, .purchase-column { flex: none; width: 100%; max-width: unset; min-width: unset; }
+    .flower-details-column img { height: 300px; }
+    .flower-details-column h3 { font-size: 2.2rem; }
+    .flower-details-column .detail-item { font-size: 1rem; flex-direction: column; align-items: flex-start; margin-bottom: 10px; }
+    .flower-details-column .detail-label { min-width: unset; padding-right: 0; margin-bottom: 5px; font-size: 0.95rem; text-align: left; }
+    .flower-details-column .detail-value { font-size: 0.95rem; }
+    .purchase-section .price-display { font-size: 2.2rem; }
+    .store-selection-detail select, .buy-button-detail { max-width: 500px; margin-left: auto; margin-right: auto; }
+    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+    .recommended-item img { height: 100px; }
+    .recommended-item h4 { font-size: 1.1rem; }
+    .recommended-item .price { font-size: 1rem; }
+}
+
+@media (max-width: 576px) { /* Small mobile devices */
+    .page-main-title { font-size: 2.5rem; margin-bottom: 30px; }
+    .main-content-area { padding: 0 15px; }
+    .card-panel { padding: 20px; border-radius: 12px; }
+    .flower-details-column img { height: 250px; margin-bottom: 25px; }
+    .flower-details-column h3 { font-size: 2rem; margin-bottom: 20px; }
+    .flower-details-column .detail-item { font-size: 1rem; flex-direction: column; align-items: flex-start; margin-bottom: 10px; }
+    .flower-details-column .detail-label { min-width: unset; padding-right: 0; margin-bottom: 5px; font-size: 0.95rem; text-align: left; }
+    .flower-details-column .detail-value { font-size: 0.95rem; }
+    .section-heading { font-size: 1.8rem; margin-bottom: 20px; }
+    .purchase-section .price-display { font-size: 2rem; margin-bottom: 25px; }
+    .store-selection-detail select { padding: 12px; font-size: 1rem; margin-bottom: 20px; background-position: right 15px top 50%; background-size: 12px auto; }
+    .buy-button-detail { padding: 16px; font-size: 1.15rem; }
+    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+    .recommended-item { padding: 15px; }
+    .recommended-item img { height: 100px; margin-bottom: 15px; }
+    .recommended-item h4 { font-size: 1.1rem; }
+    .recommended-item .price { font-size: 1rem; margin-bottom: 18px; }
+    .recommended-item .view-button { padding: 10px 18px; font-size: 0.95rem; }
+    .back-btn-container { margin-top: 25px; margin-bottom: 25px; }
+    .back-btn { padding: 12px 25px; font-size: 1.05rem; }
+}
+
+@media (max-width: 480px) {
+    .page-main-title { font-size: 2rem; margin-top: 20px; margin-bottom: 20px; }
+    .main-content-area { padding: 0 10px; gap: 20px; }
+    .card-panel { padding: 15px; }
+    .flower-details-column img { height: 180px; margin-bottom: 20px; }
+    .flower-details-column h3 { font-size: 1.5rem; margin-bottom: 15px; }
+    .flower-details-column .detail-item { font-size: 0.9rem; margin-bottom: 8px; }
+    .flower-details-column .detail-label { font-size: 0.85rem; }
+    .purchase-section .price-display { font-size: 1.8rem; margin-bottom: 20px; }
+    .store-selection-detail select { padding: 10px; font-size: 0.9rem; margin-bottom: 15px; }
+    .buy-button-detail { padding: 14px; font-size: 1rem; }
+    .recommended-item img { height: 80px; }
+    .recommended-item h4 { font-size: 1rem; }
+    .recommended-item .price { font-size: 0.95rem; }
+    .recommended-item .view-button { padding: 8px 12px; font-size: 0.85rem; }
+    .back-btn-container { margin-top: 20px; margin-bottom: 20px; }
+    .back-btn { padding: 10px 18px; font-size: 0.9rem; }
+}

@@ -1,8 +1,19 @@
 <?php
 session_start();
-include '../includes/auth_middleware.php'; // Path adjusted for subfolder
-require_role('seller');
-require_once '../config.php'; // Path adjusted for subfolder
+ini_set('display_errors', 1); // Mengaktifkan tampilan error di browser
+ini_set('display_startup_errors', 1); // Mengaktifkan tampilan error saat startup
+error_reporting(E_ALL); // Melaporkan semua jenis error
+
+// Tentukan ROOT_PATH untuk path yang lebih stabil
+// Ini akan mengambil direktori dari file saat ini (seller/index.php)
+// lalu naik satu level (ke PlantPals/)
+define('ROOT_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
+
+// Sertakan file-file yang dibutuhkan dengan path yang lebih stabil
+require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'auth_middleware.php';
+require_once ROOT_PATH . 'config.php'; // config.php ada di root PlantPals/
+
+require_role('seller'); // Memastikan user adalah seller
 
 $seller_id = $_SESSION['id'];
 
@@ -15,6 +26,7 @@ $result_products = mysqli_query($conn, "SELECT COUNT(id) AS count FROM products 
 if ($result_products) { $seller_products_count = mysqli_fetch_assoc($result_products)['count']; }
 
 // Total sales amount for this seller's products (simplified: sum of completed order items)
+// Join with order_items and orders to filter by seller_id AND order_status
 $sql_sales = "SELECT SUM(oi.unit_price * oi.quantity) AS total_sales
               FROM order_items oi
               JOIN products p ON oi.product_id = p.id
@@ -30,6 +42,7 @@ if ($stmt_sales = mysqli_prepare($conn, $sql_sales)) {
 }
 
 // Count pending orders that include this seller's products
+// Use DISTINCT to count unique orders, even if multiple of seller's items are in it
 $sql_pending_orders = "SELECT COUNT(DISTINCT o.id) AS count
                        FROM orders o
                        JOIN order_items oi ON o.id = oi.order_id
@@ -46,48 +59,26 @@ if ($stmt_pending = mysqli_prepare($conn, $sql_pending_orders)) {
 
 mysqli_close($conn);
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Penjual - PlantPals</title>
-    <style>
-        /* Shared basic styling with other backend pages */
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; min-height: 100vh; background: rgb(245, 255, 245); color: #2a4d3a; }
-        .main-content { flex: 1; padding: 40px; }
-        h1 { font-size: 2.8rem; margin-bottom: 30px; color: #386641; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
-        .stat-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); text-align: center; }
-        .stat-card h3 { font-size: 1.8rem; color: #E5989B; margin-bottom: 10px; }
-        .stat-card p { font-size: 1.1rem; color: #555; }
-        /* Responsive */
-        @media (max-width: 768px) { .main-content { padding: 20px; } h1 { font-size: 2.2rem; margin-bottom: 20px; } .stats-grid { grid-template-columns: 1fr; gap: 20px; } }
-    </style>
-</head>
-<body>
-    <?php include '../includes/header.php'; ?>
-    <div class="main-content">
-        <h1>Dashboard Penjual</h1>
-        <p>Selamat datang, <?php echo htmlspecialchars($_SESSION['username']); ?> (Penjual)!</p>
+<?php require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Produk Anda</h3>
-                <p><?php echo $seller_products_count; ?></p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Penjualan</h3>
-                <p>Rp <?php echo number_format($seller_total_sales_amount, 0, ',', '.'); ?></p>
-            </div>
-            <div class="stat-card">
-                <h3>Pesanan Pending</h3>
-                <p><?php echo $seller_pending_orders; ?></p>
-            </div>
+    <h1>Dashboard Penjual</h1>
+    <p>Selamat datang, **<?php echo htmlspecialchars($_SESSION['username']); ?>** (Penjual)!</p>
+
+    <div class="stats-grid">
+        <div class="stat-card card-panel">
+            <h3>Produk Anda</h3>
+            <p><?php echo $seller_products_count; ?></p>
         </div>
-
-        <p style="margin-top: 30px;">Gunakan menu navigasi di atas untuk mengelola produk dan pesanan Anda.</p>
+        <div class="stat-card card-panel">
+            <h3>Total Penjualan</h3>
+            <p>Rp <?php echo number_format($seller_total_sales_amount, 0, ',', '.'); ?></p>
+        </div>
+        <div class="stat-card card-panel">
+            <h3>Pesanan Pending</h3>
+            <p><?php echo $seller_pending_orders; ?></p>
+        </div>
     </div>
-    <?php include '../includes/footer.php'; ?>
-</body>
-</html>
+
+    <p style="margin-top: 30px; text-align: center; color: #555;">Gunakan menu navigasi di atas untuk mengelola produk dan pesanan Anda.</p>
+
+<?php require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'footer.php'; ?>

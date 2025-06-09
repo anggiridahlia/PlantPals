@@ -1,122 +1,6 @@
-/* PlantPals Admin/Seller Dashboard Styles - REVAMPED */
+/* PlantPals Admin/Seller Specific Styles */
 
-/* --- Google Fonts Import --- */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
-
-/* --- Global Reset & Base Styling --- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background: linear-gradient(to bottom right, rgb(239, 249, 239) 0%, rgb(228, 250, 228) 100%); /* Soft gradient background */
-    font-family: 'Poppins', sans-serif; /* Modern, readable font */
-    color: #2a4d3a; /* Dark green for main text */
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    font-size: 16px;
-    line-height: 1.6;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Montserrat', sans-serif; /* Stronger font for headings */
-    color: #386641; /* Deeper green for headings */
-    font-weight: 600;
-    margin-bottom: 0.8em;
-}
-
-a {
-    color: #E5989B; /* Accent pink for links */
-    text-decoration: none;
-    transition: color 0.3s ease, transform 0.2s ease;
-}
-
-a:hover {
-    color: #d17a87;
-    text-decoration: underline;
-}
-
-/* --- Header Styles (from includes/header.php) --- */
-header {
-    background-color: #E5989B; /* Vibrant pink header */
-    color: white;
-    padding: 15px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* More pronounced header shadow */
-    width: 100%;
-    min-height: 70px;
-    position: sticky; /* Make header sticky */
-    top: 0;
-    z-index: 1000; /* Ensure header stays on top */
-}
-
-header h1 {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 2.2rem;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: white; /* Title in header is white */
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-}
-
-header h1 span.emoji {
-    font-size: 2.8rem;
-    line-height: 1;
-}
-
-header nav {
-    display: flex;
-    gap: 25px;
-    flex-grow: 1;
-    justify-content: center;
-}
-
-header nav a {
-    color: white;
-    font-weight: 500;
-    padding: 10px 18px;
-    border-radius: 8px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    font-size: 1rem;
-    opacity: 0.9;
-}
-
-header nav a:hover {
-    background-color: rgba(255,255,255,0.25);
-    text-decoration: none;
-    transform: translateY(-2px);
-    opacity: 1;
-}
-
-.logout-btn {
-    background: white;
-    color: #E5989B;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.logout-btn:hover {
-    background-color: #d17a87;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-/* --- Main Content Area --- */
+/* --- Main Content Area (Common for Admin/Seller dashboards) --- */
 .main-content {
     flex: 1;
     padding: 40px;
@@ -128,7 +12,7 @@ header nav a:hover {
     background-color: #fcfcfc; /* Slightly off-white content background */
 }
 
-/* --- Page Heading (inside .main-content) --- */
+/* --- Page Heading (inside .main-content for admin/seller) --- */
 .main-content h1 {
     font-size: 3rem;
     margin-bottom: 40px;
@@ -173,13 +57,13 @@ header nav a:hover {
     box-shadow: 0 6px 15px rgba(76, 175, 80, 0.3);
 }
 
-/* --- Card Panel (General style for widgets/forms/tables) --- */
+/* --- Card Panel (General style for sections/widgets/forms/tables) --- */
 .card-panel {
     background: #ffffff;
     border-radius: 16px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.05); /* Softer shadow for inner panels */
     padding: 30px;
-    margin-bottom: 40px;
+    margin-bottom: 40px; /* Space between panels */
 }
 
 /* --- Forms (Common Styling) --- */
@@ -313,7 +197,7 @@ header nav a:hover {
 }
 
 .data-table tbody tr:hover {
-    background-color: #eafaea;
+    background-color: #eafaea; /* Light hover effect */
     cursor: pointer;
 }
 .data-table tbody td {
@@ -361,25 +245,7 @@ header nav a:hover {
     box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-/* --- Status Badges --- */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: white;
-    text-transform: capitalize;
-    white-space: nowrap;
-    display: inline-block; /* For proper padding/margin */
-}
-.status-badge.pending { background-color: #FFC107; } /* Amber */
-.status-badge.processing { background-color: #2196F3; } /* Blue */
-.status-badge.shipped { background-color: #9C27B0; } /* Purple */
-.status-badge.completed { background-color: #4CAF50; } /* Green */
-.status-badge.cancelled { background-color: #f44336; } /* Red */
-
-
-/* --- Dashboard Stats Grid (for index.php) --- */
+/* --- Dashboard Stats Grid (for admin/seller index.php) --- */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -407,7 +273,7 @@ header nav a:hover {
     font-weight: 500;
 }
 
-/* --- Responsive Adjustments --- */
+/* --- Responsive Adjustments (for Admin/Seller dashboards) --- */
 @media (max-width: 1200px) {
     .main-content { padding: 30px; }
     h1 { font-size: 2.5rem; margin-bottom: 30px; }
@@ -421,13 +287,8 @@ header nav a:hover {
     .stat-card h3 { font-size: 1.8rem; }
 }
 
-@media (max-width: 992px) {
-    header { flex-direction: column; align-items: flex-start; padding-bottom: 10px; min-height: unset; }
-    header nav { width: 100%; flex-direction: row; overflow-x: auto; justify-content: flex-start; margin-top: 10px; padding-bottom: 5px; /* Space for scrollbar */ }
-    header nav a { flex-shrink: 0; white-space: nowrap; padding: 8px 12px; font-size: 0.85rem; }
-    .logout-btn { align-self: flex-end; margin-top: -45px; margin-right: 20px; }
-
-    .main-content { padding: 25px; margin: 30px auto; }
+@media (max-width: 992px) { /* Tablet / Medium screens */
+    .main-content { padding: 20px; margin: 25px auto; }
     h1 { font-size: 2.2rem; margin-bottom: 25px; }
     .section-header { flex-direction: column; align-items: flex-start; gap: 15px; margin-bottom: 20px; }
     .section-header h2 { margin-bottom: 0; font-size: 1.8rem; }
@@ -440,15 +301,11 @@ header nav a:hover {
     .data-table th, .data-table td { padding: 12px; font-size: 0.85rem; }
     .data-table .action-buttons { flex-direction: column; gap: 5px; }
     .data-table .action-buttons a, .data-table .action-buttons button { width: 100%; text-align: center; }
-    .stats-grid { grid-template-columns: 1fr; gap: 20px; } /* Stack stats on medium screens */
+    .stats-grid { grid-template-columns: 1fr; gap: 20px; }
     .stat-card h3 { font-size: 1.6rem; }
 }
 
 @media (max-width: 576px) { /* Small mobile devices */
-    header { padding: 10px 15px; }
-    header h1 { font-size: 1.8rem; }
-    header h1 span.emoji { font-size: 2.4rem; }
-    .logout-btn { padding: 8px 15px; font-size: 0.9rem; }
     .main-content { padding: 15px; margin: 20px auto; }
     h1 { font-size: 2rem; margin-bottom: 20px; }
     .section-header { gap: 10px; margin-bottom: 15px; padding-bottom: 10px; }
@@ -460,7 +317,6 @@ header nav a:hover {
     .form-group input, .form-group textarea, .form-group select { padding: 10px; font-size: 0.85rem; border-radius: 8px; }
     .form-action-btns button, .form-action-btns a.btn-link { padding: 10px 18px; font-size: 0.9rem; }
     .data-table th, .data-table td { padding: 10px; font-size: 0.8rem; }
-    .status-badge { padding: 4px 8px; font-size: 0.75rem; }
     .stat-card { padding: 20px; }
     .stat-card h3 { font-size: 1.4rem; }
     .stat-card p { font-size: 1rem; }

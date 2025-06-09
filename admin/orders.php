@@ -12,7 +12,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     // Validate status to prevent SQL injection for ENUM type
     $allowed_statuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
     if (!in_array($new_status, $allowed_statuses)) {
-        // Log invalid attempt or show error
         die("Status tidak valid.");
     }
 

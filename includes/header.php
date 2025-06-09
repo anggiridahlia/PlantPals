@@ -1,6 +1,7 @@
 <?php
 // includes/header.php
 // Pastikan session_start() sudah dipanggil di halaman yang menyertakan ini.
+// File ini HANYA berisi tag <header> untuk digunakan oleh admin/seller dashboard.
 
 $current_role = $_SESSION['role'] ?? 'guest';
 $current_username = $_SESSION['username'] ?? '';
@@ -11,8 +12,9 @@ $current_username = $_SESSION['username'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlantPals Dashboard</title>
+    <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/admin_seller_styles.css">
-    </head>
+</head>
 <body>
     <header>
         <h1><span class="emoji">🌿</span> PlantPals</h1>
@@ -26,12 +28,7 @@ $current_username = $_SESSION['username'] ?? '';
                 <a href="/PlantPals/seller/index.php">Dashboard Penjual</a>
                 <a href="/PlantPals/seller/products.php">Produk Saya</a>
                 <a href="/PlantPals/seller/orders.php">Pesanan Saya</a>
-            <?php else: // Buyer role or guest ?>
-                <a href="/PlantPals/dashboard.php?page=home">Home</a>
-                <a href="/PlantPals/dashboard.php?page=products">Produk</a>
-                <a href="/PlantPals/dashboard.php?page=profile">Profil</a>
-                <a href="/PlantPals/dashboard.php?page=orders">Pesanan</a>
-                <a href="/PlantPals/dashboard.php?page=contact">Kontak</a>
+                <?php // Buyer links are not in this header, as buyer dashboard has its own header ?>
             <?php endif; ?>
         </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">
