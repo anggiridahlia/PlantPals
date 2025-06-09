@@ -14,9 +14,10 @@ $user_id = $_SESSION['id']; // Get the buyer's ID from session
 require_once 'config.php'; // Include database connection
 include 'data.php'; // For store information if needed
 
-// Retrieve POST data from the order form (using PHP 5.6 compatible syntax)
+// Retrieve POST data from the order form
 $product_name_from_form = isset($_POST['product_name']) ? htmlspecialchars($_POST['product_name']) : 'N/A';
-$product_price_from_form = isset($_POST['product_price']) ? htmlspecialchars($_POST['product_price']) : '0';
+$product_price_from_form = isset($_POST['product_price']) ? floatval($_POST['product_price']) : 0; // Use floatval for price
+$quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1; // Get quantity, default to 1
 $store_id_from_form = isset($_POST['store_id']) ? htmlspecialchars($_POST['store_id']) : 'N/A';
 $store_name_full_from_form = isset($_POST['store_name_full']) ? htmlspecialchars($_POST['store_name_full']) : 'N/A';
 
@@ -26,26 +27,45 @@ $phone_number = isset($_POST['phone_number']) ? htmlspecialchars($_POST['phone_n
 $email = isset($_POST['email']) ? htmlspecialchars($_POST['email']) : 'N/A';
 $notes = isset($_POST['notes']) ? htmlspecialchars($_POST['notes']) : 'Tidak ada';
 
-// --- Find product_id from database based on product_name ---
-$product_id_db = null;
-$stmt_product_id = mysqli_prepare($conn, "SELECT id, price FROM products WHERE name = ?");
-if ($stmt_product_id) {
-    mysqli_stmt_bind_param($stmt_product_id, "s", $product_name_from_form);
-    mysqli_stmt_execute($stmt_product_id);
-    mysqli_stmt_bind_result($stmt_product_id, $db_product_id, $db_product_price);
-    if (mysqli_stmt_fetch($stmt_product_id)) {
-        $product_id_db = $db_product_id;
-        // Optionally, cross-check price from DB vs form to prevent tampering
-        // For simplicity, we trust form data for price here, but in real app, use $db_product_price
-    }
-    mysqli_stmt_close($stmt_product_id);
-}
-
-if ($product_id_db === null) {
-    // Product not found in database, handle error or redirect
-    echo "<script>alert('Produk tidak ditemukan di database. Pesanan tidak dapat diproses.'); window.location.href='dashboard.php';</script>";
+// Basic validation for quantity
+if ($quantity < 1) {
+    echo "<script>alert('Kuantitas produk tidak boleh kurang dari 1.'); window.history.back();</script>";
     exit;
 }
+
+// --- Find product_id and current stock from database based on product_name ---
+$product_id_db = null;
+$db_product_price = 0;
+$db_product_stock = 0;
+$seller_of_product_id = null; // To check seller_id for updating stock
+
+$stmt_product_info = mysqli_prepare($conn, "SELECT id, price, stock, seller_id FROM products WHERE name = ?");
+if ($stmt_product_info) {
+    mysqli_stmt_bind_param($stmt_product_info, "s", $product_name_from_form);
+    mysqli_stmt_execute($stmt_product_info);
+    mysqli_stmt_bind_result($stmt_product_info, $product_id_db, $db_product_price, $db_product_stock, $seller_of_product_id);
+    if (mysqli_stmt_fetch($stmt_product_info)) {
+        // Product found
+    } else {
+        echo "<script>alert('Produk tidak ditemukan di database. Pesanan tidak dapat diproses.'); window.location.href='dashboard.php';</script>";
+        exit;
+    }
+    mysqli_stmt_close($stmt_product_info);
+} else {
+    error_log("Error preparing product info statement: " . mysqli_error($conn));
+    echo "<script>alert('Terjadi kesalahan sistem saat mengambil info produk. Mohon coba lagi.'); window.location.href='dashboard.php';</script>";
+    exit;
+}
+
+// --- Stock Check ---
+if ($quantity > $db_product_stock) {
+    echo "<script>alert('Stok produk " . htmlspecialchars($product_name_from_form) . " tidak mencukupi. Tersedia: " . htmlspecialchars($db_product_stock) . ".'); window.history.back();</script>";
+    exit;
+}
+// Optionally, cross-check price from DB vs form to prevent tampering.
+// For now, we trust the DB price ($db_product_price) if found.
+$actual_unit_price = $db_product_price;
+
 
 // --- Start Transaction (for atomicity) ---
 mysqli_autocommit($conn, FALSE);
@@ -53,7 +73,7 @@ $success = true;
 
 // 1. Insert into orders table
 $order_id = null;
-$total_amount = $product_price_from_form * 1; // Assuming quantity 1 for simplicity in this flow
+$total_amount = $actual_unit_price * $quantity;
 
 $sql_order = "INSERT INTO orders (user_id, total_amount, delivery_address, customer_name, customer_phone, customer_email, notes) VALUES (?, ?, ?, ?, ?, ?, ?)";
 if ($stmt_order = mysqli_prepare($conn, $sql_order)) {
@@ -72,10 +92,9 @@ if ($stmt_order = mysqli_prepare($conn, $sql_order)) {
 
 // 2. Insert into order_items table (only if order was successfully created)
 if ($success && $order_id) {
-    $quantity = 1; // Always 1 for now, as it's single product per order form
     $sql_item = "INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity, store_id, store_name) VALUES (?, ?, ?, ?, ?, ?, ?)";
     if ($stmt_item = mysqli_prepare($conn, $sql_item)) {
-        mysqli_stmt_bind_param($stmt_item, "iisddss", $order_id, $product_id_db, $product_name_from_form, $product_price_from_form, $quantity, $store_id_from_form, $store_name_full_from_form);
+        mysqli_stmt_bind_param($stmt_item, "iisddss", $order_id, $product_id_db, $product_name_from_form, $actual_unit_price, $quantity, $store_id_from_form, $store_name_full_from_form);
         if (!mysqli_stmt_execute($stmt_item)) {
             $success = false;
             error_log("Error inserting into order_items table: " . mysqli_stmt_error($stmt_item));
@@ -89,6 +108,23 @@ if ($success && $order_id) {
     $success = false;
 }
 
+// 3. Update product stock (only if order and order_item were successfully created)
+if ($success) {
+    $new_stock = $db_product_stock - $quantity;
+    $sql_update_stock = "UPDATE products SET stock = ? WHERE id = ?";
+    if ($stmt_update_stock = mysqli_prepare($conn, $sql_update_stock)) {
+        mysqli_stmt_bind_param($stmt_update_stock, "ii", $new_stock, $product_id_db);
+        if (!mysqli_stmt_execute($stmt_update_stock)) {
+            $success = false;
+            error_log("Error updating product stock: " . mysqli_stmt_error($stmt_update_stock));
+        }
+        mysqli_stmt_close($stmt_update_stock);
+    } else {
+        $success = false;
+        error_log("Error preparing stock update statement: " . mysqli_error($conn));
+    }
+}
+
 
 // --- Commit or Rollback Transaction ---
 if ($success) {
@@ -99,7 +135,7 @@ if ($success) {
     mysqli_rollback($conn);
     $confirmation_message = "Terjadi kesalahan saat memproses pesanan Anda. Mohon coba lagi.";
     $confirmation_status_class = "error";
-    // Log error details for debugging in a real application - already done above
+    // Error logging is already done above.
 }
 
 mysqli_autocommit($conn, TRUE); // Re-enable autocommit
@@ -134,7 +170,9 @@ mysqli_close($conn);
             <div class="order-details-summary">
                 <h3>Detail Produk:</h3>
                 <p><strong>Nama Produk:</strong> <span><?php echo htmlspecialchars($product_name_from_form); ?></span></p>
-                <p><strong>Harga:</strong> <span>Rp <?php echo number_format($product_price_from_form, 0, ',', '.'); ?></span></p>
+                <p><strong>Harga Satuan:</strong> <span>Rp <?php echo number_format($actual_unit_price, 0, ',', '.'); ?></span></p>
+                <p><strong>Kuantitas:</strong> <span><?php echo htmlspecialchars($quantity); ?></span></p>
+                <p><strong>Total Pembayaran:</strong> <span>Rp <?php echo number_format($total_amount, 0, ',', '.'); ?></span></p>
                 <p><strong>Dari Toko:</strong> <span><?php echo htmlspecialchars($store_name_full_from_form); ?></span></p>
 
                 <h3 style="margin-top: 25px;">Detail Pengiriman:</h3>

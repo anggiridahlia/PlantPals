@@ -65,7 +65,7 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
     ];
 }
 
-// NO mysqli_close($conn); here. It will be closed at the very end of the file.
+// No mysqli_close($conn); here, it will be at the very end of the file.
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -75,40 +75,45 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
     <title>Dashboard - PlantPals</title>
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/dashboard_styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <header>
         <h1><span class="emoji">🌿</span> PlantPals</h1>
         <nav>
-            <a href="/PlantPals/dashboard.php?page=home" class="<?php echo ($page == 'home') ? 'active' : ''; ?>">Home</a>
-            <a href="/PlantPals/dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>">Product</a>
-            <a href="/PlantPals/dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>">Profile</a>
-            <a href="/PlantPals/dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>">Orders</a>
-            <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>">Contact</a>
+            <a href="/PlantPals/dashboard.php?page=home" class="<?php echo ($page == 'home') ? 'active' : ''; ?>"><i class="fas fa-home"></i> Home</a>
+            <a href="/PlantPals/dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>"><i class="fas fa-seedling"></i> Produk</a>
+            <a href="/PlantPals/dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang</a>
+            <a href="/PlantPals/dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
+            <a href="/PlantPals/dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
+            <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
         </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">
-            <button class="logout-btn" type="submit" name="logout">Logout (<?php echo htmlspecialchars($username); ?>)</button>
+            <button class="logout-btn" type="submit" name="logout"><i class="fas fa-sign-out-alt"></i> Logout (<?php echo htmlspecialchars($username); ?>)</button>
         </form>
     </header>
 
     <div class="container">
         <nav class="sidebar">
-            <a href="dashboard.php?page=home" class="<?php echo ($page == 'home') ? 'active' : ''; ?>">Home</a>
-            <a href="dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>">Product</a>
-            <a href="dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>">Profile</a>
-            <a href="dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>">Orders</a>
-            <a href="dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>">Contact</a>
+            <a href="dashboard.php?page=home" class="<?php echo ($page == 'home') ? 'active' : ''; ?>"><i class="fas fa-home"></i> Home</a>
+            <a href="dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>"><i class="fas fa-seedling"></i> Produk</a>
+            <a href="dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang</a>
+            <a href="dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
+            <a href="dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
+            <a href="dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
         </nav>
 
         <main class="content">
             <?php
             if ($page == 'home') {
                 ?>
-                <h2>PlantPals</h2>
+                <h2>Selamat Datang di PlantPals!</h2>
                 <form class="search-bar" action="dashboard.php" method="get">
                     <input type="hidden" name="page" value="home" />
-                    <input type="text" id="searchInput" name="q" placeholder="Search..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>" />
-                    <button type="submit">🔍</button>
+                    <input type="text" id="searchInput" name="q" placeholder="Cari tanaman hias atau kebutuhan kebun..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>" />
+                    <button type="submit">
+                        <i classfas fa-search></i>
+                    </button>
                 </form>
 
                 <div id="flowerGrid" class="grid">
@@ -132,7 +137,7 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                 }
 
                 if (empty($filtered_flowers)) {
-                    echo "<p style='text-align: center; color: #777;'>Tidak ada hasil untuk pencarian Anda.</p>";
+                    echo "<p class='no-results'>Tidak ada hasil untuk pencarian Anda.</p>";
                 } else {
                     foreach ($filtered_flowers as $flower) {
                         // Use unique ID for product card if ID is not available (e.g., for fallback data)
@@ -146,7 +151,7 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                                 <p><strong>Familia:</strong> <?php echo htmlspecialchars($flower['family'] ?? 'N/A'); ?></p>
                                 <p><?php echo htmlspecialchars(substr($flower['description'] ?? '', 0, 80)); ?>...</p>
                             </div>
-                            <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $flower['name']))); ?>" class="see-more-btn">See more</a>
+                            <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $flower['name']))); ?>" class="see-more-btn">Lihat Detail <i class="fas fa-arrow-right"></i></a>
                         </div>
                         <?php
                     }
@@ -156,44 +161,65 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
             } elseif ($page == 'products') {
                 ?>
                 <div class="page-content-panel">
-                    <h2>Semua Produk Tanaman Hias</h2>
-                    <p style="text-align: center; color: #555;">Pilih bunga favoritmu dan pesan dari toko terdekat!</p>
+                    <h2>Katalog Produk Kami</h2>
+                    <p class="page-description">Temukan berbagai tanaman hias pilihan dari penjual terpercaya!</p>
                     <div class="product-list-page">
                         <?php foreach ($flowers_to_display as $flower):
-                            // Dapatkan daftar toko yang relevan untuk produk ini (dari seller_id produk)
-                            $stores_for_this_product = $stores_by_seller_id[$flower['seller_id']] ?? [];
+                            // Dapatkan informasi toko yang menjual produk ini
+                            $selling_store = null;
+                            if (isset($flower['seller_id']) && isset($stores_by_seller_id[$flower['seller_id']])) {
+                                // Ambil toko pertama dari daftar yang dimiliki seller (jika ada banyak)
+                                $selling_store = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
+                            }
+                            $store_link = "#"; // Default fallback
+                            $store_name_display = "Toko Tidak Dikenal";
+                            $store_id_string_for_order = "";
+                            $store_name_full_for_order = ""; // Untuk nama lengkap di formulir pemesanan
 
-                            // Cek apakah ada toko yang tersedia untuk produk ini
-                            $show_store_dropdown = !empty($stores_for_this_product);
-                            $select_id = htmlspecialchars($flower['id'] ?? 'fallback_' . uniqid()); // Unique ID for select element
+                            if ($selling_store) {
+                                $store_link = "store_profile.php?store_id_string=" . urlencode($selling_store['store_id_string']);
+                                $store_name_display = htmlspecialchars($selling_store['name']);
+                                $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string']);
+                                $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . $selling_store['address'] . ")");
+                            }
                         ?>
                         <div class="product-item-page">
                             <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
                             <div class="card-content">
                                 <h4><?php echo htmlspecialchars($flower['name']); ?></h4>
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
-                                <div class="store-selection">
-                                    <label for="store-<?php echo $select_id; ?>">Pilih Toko:</label>
-                                    <select id="store-<?php echo $select_id; ?>" name="store" <?php echo !$show_store_dropdown ? 'disabled' : ''; ?>>
-                                        <?php if (!$show_store_dropdown): ?>
-                                            <option value="">Tidak Ada Toko Tersedia</option>
-                                        <?php else: ?>
-                                            <?php foreach ($stores_for_this_product as $store_item): ?>
-                                                <option value="<?php echo htmlspecialchars($store_item['store_id_string']); ?>">
-                                                    <?php echo htmlspecialchars($store_item['name']); ?> - (<?php echo htmlspecialchars($store_item['address']); ?>)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
+                                <div class="store-info-display">
+                                    <span class="label"><i class="fas fa-store"></i> Dijual oleh:</span>
+                                    <?php if ($selling_store): ?>
+                                        <a href="<?php echo $store_link; ?>" class="store-name-link">
+                                            <?php echo $store_name_display; ?>
+                                            <?php if ($selling_store['address']) echo " - (" . htmlspecialchars($selling_store['address']) . ")"; ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="store-name-link"><?php echo $store_name_display; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <button class="buy-button"
-                                        onclick="handleOrder('<?php echo htmlspecialchars($flower['name']); ?>', '<?php echo htmlspecialchars($flower['price']); ?>', 'store-<?php echo $select_id; ?>');"
-                                        <?php echo !$show_store_dropdown ? 'disabled' : ''; ?>>
-                                    Pesan Sekarang
+                                        onclick="handleOrder('<?php echo htmlspecialchars($flower['name']); ?>', '<?php echo htmlspecialchars($flower['price']); ?>', '<?php echo $store_id_string_for_order; ?>', '<?php echo $store_name_full_for_order; ?>');"
+                                        <?php echo ($selling_store ? '' : 'disabled'); // Disable if no selling store found? ?>>
+                                    <i class="fas fa-shopping-cart"></i> Pesan Sekarang
                                 </button>
                             </div>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php
+            } elseif ($page == 'cart') {
+                // Halaman Keranjang Belanja - placeholder
+                ?>
+                <div class="page-content-panel">
+                    <h2><i class="fas fa-shopping-cart"></i> Keranjang Belanja Anda</h2>
+                    <p class="page-description">Fitur keranjang belanja akan segera hadir! Untuk saat ini, Anda dapat langsung memesan produk dari halaman detail produk atau daftar produk.</p>
+                    <div class="empty-cart-message">
+                        <i class="fas fa-box-open fa-3x"></i>
+                        <p>Keranjang Anda masih kosong.</p>
+                        <a href="dashboard.php?page=products" class="btn-primary" style="margin-top: 20px;">Mulai Belanja</a>
                     </div>
                 </div>
                 <?php
@@ -210,8 +236,8 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                 }
                 ?>
                 <div class="page-content-panel">
-                    <h2>Profil Pengguna</h2>
-                    <p style="text-align: center; color: #555;">Kelola informasi akun Anda di sini.</p>
+                    <h2><i class="fas fa-user-circle"></i> Profil Pengguna</h2>
+                    <p class="page-description">Kelola informasi akun Anda di sini.</p>
                     <div class="profile-info">
                         <p><strong>Username:</strong> <?php echo htmlspecialchars($user_data['username'] ?? $username); ?></p>
                         <p><strong>Email:</strong> <?php echo htmlspecialchars($user_data['email'] ?? 'N/A'); ?></p>
@@ -220,7 +246,7 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                         <p><strong>Alamat:</strong> <?php echo htmlspecialchars($user_data['address'] ?? 'N/A'); ?></p>
                         <p><strong>Bergabung Sejak:</strong> <?php echo htmlspecialchars(date('d F Y', strtotime($user_data['created_at'] ?? 'now'))); ?></p>
                         <p><strong>Status Akun:</strong> Aktif (<?php echo htmlspecialchars($user_data['role'] ?? 'buyer'); ?>)</p>
-                        <button class="profile-info-btn">Edit Profil</button>
+                        <button class="profile-info-btn"><i class="fas fa-edit"></i> Edit Profil</button>
                     </div>
                 </div>
                 <?php
@@ -251,19 +277,23 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                 }
                 ?>
                 <div class="page-content-panel">
-                    <h2>Pesanan Anda</h2>
-                    <p style="text-align: center; color: #555;">Berikut adalah daftar pesanan yang telah Anda lakukan.</p>
+                    <h2><i class="fas fa-box-open"></i> Pesanan Anda</h2>
+                    <p class="page-description">Berikut adalah daftar pesanan yang telah Anda lakukan.</p>
                     <?php if (empty($user_orders)): ?>
-                        <p style="margin-top: 20px; text-align: center; color: #777;">Tidak ada pesanan yang ditemukan.</p>
+                        <p class="no-results" style="margin-top: 20px;">Tidak ada pesanan yang ditemukan.</p>
                     <?php else: ?>
                         <ul class="order-list">
                             <?php foreach ($user_orders as $order): ?>
                                 <li>
-                                    <span><strong>ID Pesanan:</strong> #<?php echo htmlspecialchars($order['id']); ?></span>
-                                    <span><strong>Tanggal:</strong> <?php echo htmlspecialchars(date('d M Y H:i', strtotime($order['order_date']))); ?></span>
-                                    <span><strong>Total:</strong> Rp <?php echo number_format($order['total_amount'], 0, ',', '.'); ?></span>
-                                    <span><strong>Status:</strong> <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span></span>
-                                    <div style="width: 100%; margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px;">
+                                    <div class="order-header">
+                                        <span><strong>ID Pesanan:</strong> #<?php echo htmlspecialchars($order['id']); ?></span>
+                                        <span><strong>Tanggal:</strong> <?php echo htmlspecialchars(date('d M Y H:i', strtotime($order['order_date']))); ?></span>
+                                    </div>
+                                    <div class="order-summary-footer">
+                                        <span><strong>Total:</strong> Rp <?php echo number_format($order['total_amount'], 0, ',', '.'); ?></span>
+                                        <span><strong>Status:</strong> <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span></span>
+                                    </div>
+                                    <div class="order-items-detail">
                                         <strong>Item:</strong>
                                         <ul>
                                             <?php foreach ($order['items'] as $item): ?>
@@ -280,25 +310,36 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
             } elseif ($page == 'contact') {
                 ?>
                 <div class="page-content-panel">
-                    <h2>Hubungi Kami</h2>
-                    <p style="text-align: center; color: #555;">Kami siap membantu Anda. Silakan hubungi kami melalui informasi di bawah ini:</p>
-                    <p><strong>Email:</strong> info@plantpals.com</p>
-                    <p><strong>Telepon:</strong> +62 812-3456-7890</p>
-                    <p><strong>Alamat:</strong> Jl. Bunga Indah No. 123, Denpasar, Bali, Indonesia</p>
-                    <h3 style="margin-top: 30px;">Form Kontak</h3>
+                    <h2><i class="fas fa-envelope-open-text"></i> Hubungi Kami</h2>
+                    <p class="page-description">Kami siap membantu Anda. Silakan hubungi kami melalui informasi di bawah ini:</p>
+                    <div class="contact-info">
+                        <p><i class="fas fa-at"></i> <strong>Email:</strong> info@plantpals.com</p>
+                        <p><i class="fas fa-phone-alt"></i> <strong>Telepon:</strong> +62 812-3456-7890</p>
+                        <p><i class="fas fa-map-marked-alt"></i> <strong>Alamat:</strong> Jl. Bunga Indah No. 123, Denpasar, Bali, Indonesia</p>
+                    </div>
+                    <h3 class="section-sub-title">Form Kontak</h3>
                     <form class="contact-form">
-                        <input type="text" placeholder="Nama Anda" name="name" required>
-                        <input type="email" placeholder="Email Anda" name="email" required>
-                        <textarea placeholder="Pesan Anda" name="message" rows="6"></textarea>
-                        <button type="submit" class="submit-button">Kirim Pesan</button>
+                        <div class="form-group">
+                            <label for="contactName"><i class="fas fa-user"></i> Nama Anda:</label>
+                            <input type="text" id="contactName" placeholder="Nama Lengkap Anda" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactEmail"><i class="fas fa-envelope"></i> Email Anda:</label>
+                            <input type="email" id="contactEmail" placeholder="email@contoh.com" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactMessage"><i class="fas fa-comment-dots"></i> Pesan Anda:</label>
+                            <textarea id="contactMessage" placeholder="Tulis pesan Anda di sini..." name="message" rows="6"></textarea>
+                        </div>
+                        <button type="submit" class="submit-button"><i class="fas fa-paper-plane"></i> Kirim Pesan</button>
                     </form>
                 </div>
                 <?php
             } else {
                 ?>
                 <div class="page-content-panel">
-                    <h2>Halaman Tidak Ditemukan</h2>
-                    <p style="text-align: center; color: #777;">Halaman yang Anda cari tidak tersedia. Silakan kembali ke <a href="dashboard.php?page=home">Home</a>.</p>
+                    <h2><i class="fas fa-exclamation-triangle"></i> Halaman Tidak Ditemukan</h2>
+                    <p class="no-results">Halaman yang Anda cari tidak tersedia. Silakan kembali ke <a href="dashboard.php?page=home">Home</a>.</p>
                 </div>
                 <?php
             }
@@ -310,22 +351,18 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
     </footer>
 
     <script>
-        function handleOrder(productName, productPrice, storeSelectId) {
-            const storeSelect = document.getElementById(storeSelectId);
-            const selectedStoreOption = storeSelect.options[storeSelect.selectedIndex];
-            const selectedStoreId = selectedStoreOption.value;
-            const selectedStoreName = selectedStoreOption.text;
-
-            if (selectedStoreId === "") { // Check if 'Tidak Ada Toko Tersedia' is selected
-                alert("Mohon pilih toko yang tersedia untuk produk ini.");
-                return; // Stop the function
+        // Updated handleOrder function to accept store_id_string and store_name_full directly
+        function handleOrder(productName, productPrice, storeIdString, storeNameFull) {
+            if (storeIdString === "" || storeNameFull === "") {
+                alert("Informasi toko tidak lengkap untuk produk ini.");
+                return;
             }
 
             const urlParams = [];
             urlParams.push('product_name=' + encodeURIComponent(productName));
             urlParams.push('product_price=' + encodeURIComponent(productPrice));
-            urlParams.push('store_id=' + encodeURIComponent(selectedStoreId));
-            urlParams.push('store_name=' + encodeURIComponent(selectedStoreName));
+            urlParams.push('store_id=' + encodeURIComponent(storeIdString));
+            urlParams.push('store_name=' + encodeURIComponent(storeNameFull));
 
             window.location.href = `/PlantPals/order_form.php?${urlParams.join('&')}`;
         }

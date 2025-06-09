@@ -1,373 +1,449 @@
-/* PlantPals Detail Flower Specific Styles */
-
-/* --- Page Title (under header, specific for detail_flower.php) --- */
-.page-main-title {
-    font-family: 'Roboto', sans-serif;
-    font-size: 3rem;
-    margin: 40px auto;
-    color: #4CAF50;
-    font-weight: 700;
-    text-align: center;
-    letter-spacing: -0.02em;
-    width: 100%;
-    padding: 0 20px;
-}
-
-/* --- Main Content Area (Full Width, Two Columns) --- */
-.main-content-area {
-    flex: 1;
-    display: flex;
-    width: 100%;
-    padding: 0 40px;
-    gap: 40px;
-    margin-bottom: 40px;
-    box-sizing: border-box;
-    align-items: flex-start;
-    max-width: 1300px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* --- Card Styling (General for all panels) --- */
-.card-panel {
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
-    padding: 30px;
-    box-sizing: border-box;
+/* General Layout */
+body {
+    background: linear-gradient(to right, rgb(228, 250, 228), rgb(242, 230, 234));
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-/* --- Left Column: Flower Details (Takes 60% of available space) --- */
+.page-main-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 3rem;
+    color: #3a5a20;
+    text-align: center;
+    margin: 40px 0 30px;
+    position: relative;
+}
+.page-main-title::after {
+    content: '';
+    display: block;
+    width: 100px;
+    height: 4px;
+    background: #E5989B;
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+
+.main-content-area {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap; /* Allow columns to wrap */
+    justify-content: center;
+    gap: 30px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.flower-details-column,
+.purchase-column {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    flex: 1; /* Allow columns to grow */
+    min-width: 300px; /* Minimum width before wrapping */
+}
+
 .flower-details-column {
-    flex: 3;
-    min-width: 500px;
-    max-width: 65%;
+    max-width: 650px; /* Lebar maksimum untuk kolom detail */
+    text-align: center;
+}
+.purchase-column {
+    max-width: 350px; /* Lebar maksimum untuk kolom pembelian */
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-}
-
-.flower-details-column img {
-    width: 100%;
-    max-width: 600px;
-    height: 400px;
-    object-fit: cover;
-    border-radius: 12px;
-    margin-bottom: 35px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    justify-content: center;
 }
 
 .flower-details-column h3 {
-    font-family: 'Roboto', sans-serif;
-    font-size: 3rem;
-    margin-bottom: 30px;
-    color: #4CAF50;
-    font-weight: 700;
-    line-height: 1.2;
-    text-align: center;
-}
-
-.flower-details-column .detail-item {
-    display: flex;
-    justify-content: flex-start;
-    align-items: baseline;
-    width: 100%;
-    margin-bottom: 18px;
-    font-size: 1.2rem;
-    color: #424242;
-    font-family: 'Open Sans', sans-serif;
-}
-
-.flower-details-column .detail-label {
-    font-weight: 600;
-    color: #4CAF50;
-    min-width: 180px;
-    text-align: left;
-    padding-right: 20px;
-    flex-shrink: 0;
-}
-
-.flower-details-column .detail-value {
-    flex: 1;
-    text-align: left;
-    line-height: 1.7;
-}
-
-/* --- Right Column: Purchase (Takes 40% of available space) --- */
-.purchase-column {
-    flex: 2;
-    min-width: 400px;
-    max-width: 35%;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-}
-
-/* --- Section Titles within Panels --- */
-.card-panel .section-heading {
-    font-family: 'Roboto', sans-serif;
     font-size: 2.2rem;
-    color: #4CAF50;
+    color: #3a5a20;
     margin-bottom: 25px;
-    font-weight: 600;
-    text-align: center;
+    position: relative;
 }
-
-/* --- Purchase Section Specific Styles --- */
-.purchase-section .price-display {
-    font-size: 2.8rem;
-    font-weight: 700;
-    color: #FF7043;
-    margin-bottom: 35px;
-    text-align: center;
-    letter-spacing: -0.03em;
-}
-
-.store-selection-detail label {
-    font-family: 'Open Sans', sans-serif;
+.flower-details-column h3::after {
+    content: '';
     display: block;
-    font-size: 1.2rem;
-    color: #424242;
-    margin-bottom: 15px;
-    font-weight: 500;
+    width: 60px;
+    height: 3px;
+    background: #E5989B;
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+
+.flower-details-column img {
+    max-width: 100%;
+    height: 350px; /* Increased image height for better display */
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+/* Detail Item Section */
+.detail-item {
+    display: flex;
+    align-items: flex-start; /* Align text to start */
+    gap: 15px; /* Jarak antara ikon dan teks */
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    color: #555;
+    text-align: left; /* Rata kiri untuk teks */
+    padding-left: 10px; /* Sedikit indent dari kiri panel */
+}
+.detail-item i {
+    color: #E5989B; /* Warna ikon */
+    font-size: 1.3em;
+    width: 25px; /* Pastikan lebar ikon seragam */
+    text-align: center;
+    flex-shrink: 0; /* Jangan biarkan ikon menyusut */
+    padding-top: 2px; /* Slight adjustment for icon alignment */
+}
+.detail-item .detail-label {
+    font-weight: bold;
+    color: #3a5a20; /* Warna label hijau tua */
+    min-width: 120px; /* Lebar minimum untuk label agar rapi */
+    flex-shrink: 0; /* Jangan biarkan label menyusut */
+}
+.detail-item .detail-value {
+    flex-grow: 1; /* Konten mengisi sisa ruang */
+    line-height: 1.5; /* Spasi baris untuk teks deskripsi yang panjang */
+}
+
+
+/* Purchase Column */
+.purchase-column .section-heading {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.2rem;
+    color: #E5989B;
+    margin-bottom: 25px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.purchase-column .section-heading::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: #3a5a20;
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+.purchase-column .price-display {
+    font-size: 2.8rem; /* Lebih besar dari sebelumnya */
+    font-weight: bold;
+    color: #3a5a20;
+    margin-bottom: 30px;
     text-align: center;
 }
 
-.store-selection-detail select {
+/* Store Info Display */
+.store-info-display {
+    margin-top: 15px;
+    text-align: center;
     width: 100%;
-    padding: 18px;
-    border: 1px solid #bdbdbd;
-    border-radius: 12px;
-    font-size: 1.15rem;
-    background-color: #fafafa;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23424242%22%20d%3D%22M287%2C197.3L159.2%2C69.5c-4.4-4.4-11.4-4.4-15.8%2C0L5.4%2C197.3c-4.4%2C4.4-4.4%2C11.4%2C0%2C15.8c4.4%2C4.4%2C11.4%2C4.4%2C15.8%2C0l135.9-135.9l135.9%2C135.9c4.4%2C4.4%2C11.4%2C4.4%2C15.8%2C0C291.4%2C208.7%2C291.4%2C201.7%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E');
-    background-repeat: no-repeat;
-    background-position: right 20px top 50%;
-    background-size: 16px auto;
-    padding-right: 45px;
-    transition: border-color 0.3s ease, box-shadow 0.2s ease;
+}
+.store-info-display .label {
+    font-weight: bold;
+    color: #3a5a20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+.store-name-link {
+    display: inline-block;
+    padding: 10px 18px;
+    background-color: #f0f8ff;
+    border: 1px solid #c3d9c3;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #E5989B;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 1.05em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.store-name-link:hover {
+    background-color: #e6f7ff;
+    border-color: #E5989B;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-.store-selection-detail select:hover { border-color: #9e9e9e; }
-.store-selection-detail select:focus { border-color: #FF7043; outline: none; box-shadow: 0 0 0 4px rgba(255, 112, 67, 0.25); }
-
+/* Buy Button */
 .buy-button-detail {
-    width: 100%;
-    padding: 20px 30px;
-    background-color: #FF7043;
+    margin-top: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #E5989B;
     color: white;
+    padding: 15px 30px; /* Padding lebih besar */
     border: none;
-    border-radius: 12px;
+    border-radius: 10px; /* Lebih lembut */
+    font-size: 1.2rem; /* Lebih besar */
     font-weight: 700;
-    font-size: 1.45rem;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
-    font-family: 'Roboto', sans-serif;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    width: 90%; /* Hampir penuh */
 }
-
 .buy-button-detail:hover {
-    background-color: #f4511e;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(255, 112, 67, 0.35);
+    background-color: rgb(182, 88, 117);
+    transform: translateY(-4px); /* Efek melayang lebih dramatis */
+    box-shadow: 0 8px 15px rgba(182, 88, 117, 0.4);
 }
 
-/* --- Recommended Flowers Section (Now full-width below columns) --- */
+
+/* Recommended Flowers Section */
 .recommended-flowers-section-container {
-    width: 100%;
+    padding: 40px;
     margin-top: 40px;
-    margin-bottom: 40px;
 }
-
 .recommended-flowers-section-container .section-heading {
-    margin-bottom: 30px;
+    font-size: 2.5rem;
+    color: #3a5a20;
+    margin-bottom: 35px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+.recommended-flowers-section-container .section-heading::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: #E5989B;
+    margin: 15px auto 0;
+    border-radius: 2px;
 }
 
 .recommended-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 30px;
-    justify-content: center;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Lebih kecil agar muat banyak */
+    gap: 25px;
 }
 
-.recommended-item {
-    background: #fcfcfc;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.07);
-    padding: 20px;
-    text-align: center;
+.recommended-item.card { /* Re-using .card styles */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
+    text-align: center;
     text-decoration: none;
-    width: 100%;
+    color: #333;
+    padding: 0; /* Remove default card padding */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Less shadow than main cards */
 }
-
-.recommended-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+.recommended-item.card:hover {
+    transform: translateY(-5px); /* Less dramatic hover */
+    box-shadow: 0 8px 18px rgba(0,0,0,0.1);
 }
-
-.recommended-item img {
+.recommended-item.card img {
     width: 100%;
-    height: 160px;
+    height: 150px;
     object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    border-radius: 10px 10px 0 0; /* Rounded top corners */
+    border-bottom: 1px solid #f0f0f0;
 }
-
-.recommended-item h4 {
-    font-family: 'Roboto', sans-serif;
-    font-size: 1.3rem;
-    color: #4CAF50;
-    margin-bottom: 10px;
-    font-weight: 600;
+.recommended-item.card h4 {
+    font-size: 1.1rem;
+    color: #3a5a20;
+    margin: 15px 10px 5px;
     line-height: 1.3;
 }
-
-.recommended-item .price {
-    font-weight: 700;
-    color: #FF7043;
-    font-size: 1.15rem;
-    margin-bottom: 18px;
+.recommended-item.card .price {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: #E5989B;
 }
-
 .recommended-item .view-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 1.05rem;
-    font-weight: 600;
-    transition: background-color 0.3s ease;
-    width: 95%;
-    display: block;
-    font-family: 'Roboto', sans-serif;
-}
-
-.recommended-item .view-button:hover {
-    background-color: #388e3c;
-}
-
-/* --- Back Button --- */
-.back-btn-container {
-    width: 100%;
-    display: flex;
+    display: flex; /* For icon */
+    align-items: center;
     justify-content: center;
-    margin-top: 40px;
-    margin-bottom: 40px;
+    gap: 5px;
+    background-color: #f0f8ff; /* Light background for button */
+    color: #E5989B;
+    padding: 10px;
+    border-top: 1px solid #e0e0e0;
+    font-weight: 600;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 0 0 12px 12px; /* Rounded bottom corners */
+}
+.recommended-item .view-button:hover {
+    background-color: #E5989B;
+    color: white;
 }
 
+
+/* Back Button */
+.back-btn-container {
+    margin: 40px 0;
+    text-align: center;
+}
 .back-btn {
+    display: inline-flex; /* For icon */
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 15px 30px;
-    background-color: #FF7043;
+    background-color: #3a5a20;
     color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1.15rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    border-radius: 10px;
     text-decoration: none;
-    display: inline-block;
-    box-shadow: 0 6px 15px rgba(255, 112, 67, 0.25);
-    font-family: 'Roboto', sans-serif;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 .back-btn:hover {
-    background-color: #f4511e;
+    background-color: #2f4d3a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(255, 112, 67, 0.35);
 }
 
-/* --- Responsive Adjustments --- */
-@media (max-width: 1200px) {
-    .page-main-title { font-size: 2.8rem; }
-    .main-content-area { padding: 0 30px; gap: 30px; }
-    .flower-details-column { min-width: 450px; }
-    .purchase-column { min-width: 350px; }
-    .flower-details-column img { height: 350px; }
-    .flower-details-column h3 { font-size: 2.5rem; }
-    .flower-details-column .detail-item { font-size: 1.1rem; }
-    .flower-details-column .detail-label { min-width: 170px; }
-    .card-panel { padding: 25px; }
-    .section-heading { font-size: 2rem; }
-    .purchase-section .price-display { font-size: 2.5rem; }
-    .store-selection-detail select { padding: 16px; font-size: 1.1rem; }
-    .buy-button-detail { padding: 18px; font-size: 1.3rem; }
-    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; }
-    .recommended-item img { height: 120px; }
-    .recommended-item h4 { font-size: 1.2rem; }
-    .recommended-item .price { font-size: 1.1rem; }
-    .recommended-item .view-button { padding: 10px 18px; font-size: 1rem; }
-    .back-btn-container { margin-top: 30px; margin-bottom: 30px; }
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .main-content-area {
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+    .flower-details-column, .purchase-column {
+        width: 100%;
+        max-width: 600px; /* Keep a max-width for readability */
+        margin-bottom: 30px;
+    }
+    .flower-details-column img {
+        height: 280px;
+    }
+    .recommended-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+    }
 }
 
-@media (max-width: 992px) { /* Tablet / Medium screens */
-    .main-content-area { flex-direction: column; align-items: center; padding: 0 20px; gap: 30px; }
-    .flower-details-column, .purchase-column { flex: none; width: 100%; max-width: unset; min-width: unset; }
-    .flower-details-column img { height: 300px; }
-    .flower-details-column h3 { font-size: 2.2rem; }
-    .flower-details-column .detail-item { font-size: 1rem; flex-direction: column; align-items: flex-start; margin-bottom: 10px; }
-    .flower-details-column .detail-label { min-width: unset; padding-right: 0; margin-bottom: 5px; font-size: 0.95rem; text-align: left; }
-    .flower-details-column .detail-value { font-size: 0.95rem; }
-    .purchase-section .price-display { font-size: 2.2rem; }
-    .store-selection-detail select, .buy-button-detail { max-width: 500px; margin-left: auto; margin-right: auto; }
-    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-    .recommended-item img { height: 100px; }
-    .recommended-item h4 { font-size: 1.1rem; }
-    .recommended-item .price { font-size: 1rem; }
-}
-
-@media (max-width: 576px) { /* Small mobile devices */
-    .page-main-title { font-size: 2.5rem; margin-bottom: 30px; }
-    .main-content-area { padding: 0 15px; }
-    .card-panel { padding: 20px; border-radius: 12px; }
-    .flower-details-column img { height: 250px; margin-bottom: 25px; }
-    .flower-details-column h3 { font-size: 2rem; margin-bottom: 20px; }
-    .flower-details-column .detail-item { font-size: 1rem; flex-direction: column; align-items: flex-start; margin-bottom: 10px; }
-    .flower-details-column .detail-label { min-width: unset; padding-right: 0; margin-bottom: 5px; font-size: 0.95rem; text-align: left; }
-    .flower-details-column .detail-value { font-size: 0.95rem; }
-    .section-heading { font-size: 1.8rem; margin-bottom: 20px; }
-    .purchase-section .price-display { font-size: 2rem; margin-bottom: 25px; }
-    .store-selection-detail select { padding: 12px; font-size: 1rem; margin-bottom: 20px; background-position: right 15px top 50%; background-size: 12px auto; }
-    .buy-button-detail { padding: 16px; font-size: 1.15rem; }
-    .recommended-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-    .recommended-item { padding: 15px; }
-    .recommended-item img { height: 100px; margin-bottom: 15px; }
-    .recommended-item h4 { font-size: 1.1rem; }
-    .recommended-item .price { font-size: 1rem; margin-bottom: 18px; }
-    .recommended-item .view-button { padding: 10px 18px; font-size: 0.95rem; }
-    .back-btn-container { margin-top: 25px; margin-bottom: 25px; }
-    .back-btn { padding: 12px 25px; font-size: 1.05rem; }
+@media (max-width: 768px) {
+    .page-main-title {
+        font-size: 2.5rem;
+        margin-top: 30px;
+        margin-bottom: 25px;
+    }
+    .flower-details-column h3, .purchase-column .section-heading {
+        font-size: 1.8rem;
+    }
+    .flower-details-column img {
+        height: 220px;
+    }
+    .detail-item {
+        font-size: 1em;
+        flex-direction: column; /* Stack label and value vertically */
+        align-items: flex-start;
+        gap: 5px;
+    }
+    .detail-item .detail-label {
+        min-width: unset;
+        width: 100%;
+    }
+    .detail-item .detail-value {
+        padding-left: 30px; /* Indent value slightly */
+    }
+    .purchase-column .price-display {
+        font-size: 2.2rem;
+    }
+    .buy-button-detail {
+        padding: 12px 20px;
+        font-size: 1.1rem;
+    }
+    .recommended-flowers-section-container .section-heading {
+        font-size: 2rem;
+    }
+    .recommended-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Further reduction */
+        gap: 15px;
+    }
+    .recommended-item.card img {
+        height: 120px;
+    }
+    .recommended-item.card h4 {
+        font-size: 1rem;
+    }
+    .recommended-item.card .price {
+        font-size: 0.9rem;
+    }
 }
 
 @media (max-width: 480px) {
-    .page-main-title { font-size: 2rem; margin-top: 20px; margin-bottom: 20px; }
-    .main-content-area { padding: 0 10px; gap: 20px; }
-    .card-panel { padding: 15px; }
-    .flower-details-column img { height: 180px; margin-bottom: 20px; }
-    .flower-details-column h3 { font-size: 1.5rem; margin-bottom: 15px; }
-    .flower-details-column .detail-item { font-size: 0.9rem; margin-bottom: 8px; }
-    .flower-details-column .detail-label { font-size: 0.85rem; }
-    .purchase-section .price-display { font-size: 1.8rem; margin-bottom: 20px; }
-    .store-selection-detail select { padding: 10px; font-size: 0.9rem; margin-bottom: 15px; }
-    .buy-button-detail { padding: 14px; font-size: 1rem; }
-    .recommended-item img { height: 80px; }
-    .recommended-item h4 { font-size: 1rem; }
-    .recommended-item .price { font-size: 0.95rem; }
-    .recommended-item .view-button { padding: 8px 12px; font-size: 0.85rem; }
-    .back-btn-container { margin-top: 20px; margin-bottom: 20px; }
-    .back-btn { padding: 10px 18px; font-size: 0.9rem; }
+    .page-main-title {
+        font-size: 2rem;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .flower-details-column, .purchase-column, .recommended-flowers-section-container {
+        padding: 20px;
+    }
+    .flower-details-column h3, .purchase-column .section-heading {
+        font-size: 1.6rem;
+    }
+    .flower-details-column img {
+        height: 180px;
+    }
+    .detail-item {
+        font-size: 0.95em;
+    }
+    .purchase-column .price-display {
+        font-size: 1.8rem;
+    }
+    .buy-button-detail {
+        padding: 10px 15px;
+        font-size: 1rem;
+    }
+    .recommended-flowers-section-container .section-heading {
+        font-size: 1.6rem;
+    }
+    .recommended-grid {
+        grid-template-columns: 1fr; /* Single column */
+        gap: 10px;
+    }
+    .recommended-item.card {
+        flex-direction: row; /* Horizontal layout for recommended items */
+        text-align: left;
+    }
+    .recommended-item.card img {
+        width: 100px;
+        height: 100px;
+        border-radius: 10px;
+        margin-right: 10px;
+        border-bottom: none;
+    }
+    .recommended-item.card h4 {
+        font-size: 1.1em;
+        margin: 0 0 5px 0;
+    }
+    .recommended-item.card .price {
+        font-size: 0.9em;
+        margin-bottom: 0;
+    }
+    .recommended-item .view-button {
+        display: none; /* Hide button on very small screens, make whole card clickable */
+    }
+    .recommended-item.card .card-content { /* Adjust padding for row layout */
+        padding: 10px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .back-btn {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
 }

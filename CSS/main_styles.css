@@ -1,215 +1,222 @@
-/* PlantPals Main Styles - Universal for all pages */
-
-/* --- Google Fonts Import --- */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600;700&display=swap');
-/* Using Roboto (clean, modern) and Open Sans (readable, neutral) */
-
-/* --- Global Reset & Base Styling --- */
+/* Universal styles */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+/* Import Google Fonts for a more modern look */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap');
+
 body {
-    background: linear-gradient(to bottom right, #e8f5e9 0%, #dcf4dc 100%); /* Softer, lighter green gradient */
-    font-family: 'Open Sans', sans-serif; /* Default body font */
-    color: #3f51b5; /* A subtle blue-grey for main text */
+    font-family: 'Poppins', sans-serif; /* Default font for body text */
+    line-height: 1.6;
+    background: linear-gradient(to right, rgb(228, 250, 228), rgb(242, 230, 234)); /* Soft gradient background */
+    color: #333;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-size: 16px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased; /* Smoother fonts */
-    -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Roboto', sans-serif; /* Stronger, more structured font for headings */
-    color: #4CAF50; /* A pleasant green for headings */
-    font-weight: 700; /* Bolder headings */
-    margin-bottom: 0.8em;
+/* Headings will use Montserrat */
+h1, h2, h3, h4, h5, h6, .section-heading, .section-sub-title {
+    font-family: 'Montserrat', sans-serif;
 }
 
-p {
-    font-family: 'Open Sans', sans-serif;
-    color: #616161; /* Slightly darker grey for paragraphs */
-}
 
 a {
-    color: #FF7043; /* A warm orange for links */
+    color: #E5989B; /* A pleasant pinkish color for links */
     text-decoration: none;
-    transition: color 0.3s ease, transform 0.2s ease;
+    transition: color 0.3s ease;
 }
 
 a:hover {
-    color: #ff5722; /* Darker orange on hover */
+    color: rgb(182, 88, 117); /* Darker pink on hover */
     text-decoration: underline;
 }
 
-/* --- Buttons (Universal Style) --- */
-.btn-primary {
-    background-color: #4CAF50; /* Primary green button */
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 500;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.2);
-}
-
-.btn-primary:hover {
-    background-color: #388e3c; /* Darker green on hover */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
-}
-
-.btn-secondary {
-    background-color: #FF7043; /* Secondary orange button */
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 500;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 8px rgba(255, 112, 67, 0.2);
-}
-
-.btn-secondary:hover {
-    background-color: #f4511e; /* Darker orange on hover */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(255, 112, 67, 0.3);
-}
-
-
-/* --- Header (Universal across all pages) --- */
+/* Header styles */
 header {
-    background-color: #E5989B; /* Original pink header */
+    background-color: #3a5a20; /* Darker green */
     color: white;
-    padding: 15px 40px;
+    padding: 15px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    width: 100%;
-    min-height: 70px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    flex-wrap: wrap; /* Allow header items to wrap on smaller screens */
+    gap: 15px; /* Spacing between header items */
 }
 
 header h1 {
-    font-family: 'Roboto', sans-serif;
     font-size: 2.2rem;
+    margin: 0;
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: white; /* Title in header is white */
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
-header h1 span.emoji {
-    font-size: 2.8rem;
-    line-height: 1;
+header h1 .emoji {
+    font-size: 1.5em; /* Larger emoji */
+    margin-right: 10px;
+    line-height: 1; /* Align emoji with text */
 }
 
 header nav {
     display: flex;
-    gap: 25px;
-    flex-grow: 1;
-    justify-content: center;
+    flex-wrap: wrap; /* Allow nav items to wrap */
+    gap: 10px; /* Spacing between nav links */
+    flex-grow: 1; /* Allow nav to take available space */
+    justify-content: center; /* Center nav items */
 }
 
 header nav a {
     color: white;
-    font-family: 'Open Sans', sans-serif;
-    font-weight: 500;
-    padding: 10px 18px;
-    border-radius: 8px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    font-size: 1rem;
-    opacity: 0.9;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    display: flex; /* For icon alignment */
+    align-items: center;
+    gap: 5px; /* Space between icon and text */
 }
 
 header nav a:hover {
-    background-color: rgba(255,255,255,0.25);
+    background-color: #55803a; /* Lighter green on hover */
     text-decoration: none;
-    transform: translateY(-2px);
-    opacity: 1;
 }
 
 .logout-btn {
-    background: white;
-    color: #E5989B;
+    background-color: #E5989B; /* Pinkish color for logout */
+    color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    display: flex; /* For icon alignment */
+    align-items: center;
+    gap: 5px; /* Space between icon and text */
 }
 
 .logout-btn:hover {
-    background-color: #d17a87;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    background-color: rgb(182, 88, 117); /* Darker pink on hover */
 }
 
-/* --- Status Badges (Universal) --- */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-family: 'Open Sans', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: white;
-    text-transform: capitalize;
-    white-space: nowrap;
-    display: inline-block;
-}
-.status-badge.pending { background-color: #FFC107; }
-.status-badge.processing { background-color: #2196F3; }
-.status-badge.shipped { background-color: #9C27B0; }
-.status-badge.completed { background-color: #4CAF50; }
-.status-badge.cancelled { background-color: #207344; }
-
-/* --- Footer (Common) --- */
+/* Footer styles */
 footer {
+    background-color: #3a5a20; /* Same as header */
+    color: white;
     text-align: center;
-    padding: 20px 0;
-    font-family: 'Open Sans', sans-serif;
-    font-size: 0.95rem;
+    padding: 15px;
+    margin-top: auto; /* Pushes footer to the bottom */
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+}
+
+/* Main content wrapper for pages that don't have a sidebar (like order_form, detail_flower) */
+.main-content-wrapper-form {
+    flex-grow: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Basic card styling */
+.card-panel {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Common button styles */
+.btn-primary {
+    background-color: #E5989B;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: inline-flex; /* For icon alignment */
+    align-items: center;
+    gap: 8px;
+    text-decoration: none; /* If used on anchor tags */
+}
+.btn-primary:hover {
+    background-color: rgb(182, 88, 117);
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+/* Page description/subtitle */
+.page-description {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Generic no results/empty messages */
+.no-results, .empty-cart-message {
+    text-align: center;
     color: #777;
-    background-color: #f5f5f5;
-    border-top: 1px solid #e0e0e0;
-    width: 100%;
-    margin-top: auto;
+    font-size: 1.1em;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px dashed #ddd;
 }
 
-/* --- Responsive Adjustments (Common for Header/Footer) --- */
-@media (max-width: 992px) {
-    header { flex-direction: column; align-items: flex-start; padding-bottom: 10px; min-height: unset; }
-    header nav { width: 100%; flex-direction: row; overflow-x: auto; justify-content: flex-start; margin-top: 10px; padding-bottom: 5px; }
-    header nav a { flex-shrink: 0; white-space: nowrap; padding: 8px 12px; font-size: 0.85rem; }
-    .logout-btn { align-self: flex-end; margin-top: -45px; margin-right: 20px; }
+.no-results i, .empty-cart-message i { /* Added i for icon within these blocks */
+    font-size: 4em;
+    color: #c3d9c3;
+    margin-bottom: 15px;
+    display: block; /* Ensure icon is on its own line */
+}
+.empty-cart-message p {
+    margin-bottom: 15px;
 }
 
-@media (max-width: 576px) {
-    header { padding: 10px 15px; }
-    header h1 { font-size: 1.8rem; }
-    header h1 span.emoji { font-size: 2.4rem; }
-    .logout-btn { padding: 8px 15px; font-size: 0.9rem; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        padding: 10px 15px;
+    }
+
+    header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+    }
+
+    header nav {
+        flex-direction: column; /* Stack nav items vertically */
+        align-items: center;
+        width: 100%;
+    }
+    header nav a {
+        width: 100%;
+        text-align: center;
+        padding: 10px 15px;
+    }
+
+    .logout-btn {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .page-description {
+        font-size: 1em;
+    }
 }

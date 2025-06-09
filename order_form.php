@@ -13,9 +13,10 @@ $username = htmlspecialchars($_SESSION['username']);
 // Include data.php to get store names if needed
 include 'data.php';
 
-// Get product data from URL parameters (PHP 5.6 compatible)
+// Get product data from URL parameters
 $product_name = isset($_GET['product_name']) ? htmlspecialchars($_GET['product_name']) : 'Produk Tidak Dikenal';
-$product_price = isset($_GET['product_price']) ? htmlspecialchars($_GET['product_price']) : '0';
+$product_price_raw = isset($_GET['product_price']) ? floatval($_GET['product_price']) : 0; // Get raw price as float
+$product_price_display = number_format($product_price_raw, 0, ',', '.'); // For display
 $store_id = isset($_GET['store_id']) ? htmlspecialchars($_GET['store_id']) : '';
 $store_name_full = isset($_GET['store_name']) ? htmlspecialchars($_GET['store_name']) : 'Toko Tidak Dikenal'; // Full name from URL
 
@@ -35,6 +36,23 @@ if (isset($matches[1])) {
     <title>Formulir Pemesanan - PlantPals</title>
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/order_form_styles.css">
+    <style>
+        .order-summary p strong {
+            color: #3a5a20;
+        }
+        .total-price-display {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #E5989B;
+            margin-top: 20px;
+            text-align: right;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -49,15 +67,24 @@ if (isset($matches[1])) {
             <h2>Lengkapi Detail Pemesanan</h2>
             <div class="order-summary">
                 <p><strong>Produk:</strong> <?php echo htmlspecialchars($product_name); ?></p>
-                <p><strong>Harga:</strong> Rp <?php echo number_format($product_price, 0, ',', '.'); ?></p>
+                <p><strong>Harga Satuan:</strong> Rp <span id="unitPrice"><?php echo $product_price_display; ?></span></p>
                 <p><strong>Toko:</strong> <?php echo htmlspecialchars($store_display_name); ?></p>
             </div>
 
             <form action="process_order.php" method="post">
                 <input type="hidden" name="product_name" value="<?php echo htmlspecialchars($product_name); ?>">
-                <input type="hidden" name="product_price" value="<?php echo htmlspecialchars($product_price); ?>">
+                <input type="hidden" name="product_price" id="rawProductPrice" value="<?php echo $product_price_raw; ?>">
                 <input type="hidden" name="store_id" value="<?php echo htmlspecialchars($store_id); ?>">
                 <input type="hidden" name="store_name_full" value="<?php echo htmlspecialchars($store_name_full); ?>">
+
+                <div class="form-group">
+                    <label for="quantity">Kuantitas:</label>
+                    <input type="number" id="quantity" name="quantity" value="1" min="1" required oninput="calculateTotal()">
+                </div>
+
+                <div class="total-price-display">
+                    Total Harga: Rp <span id="totalPrice">0</span>
+                </div>
 
                 <div class="form-group">
                     <label for="full_name">Nama Lengkap:</label>
@@ -93,5 +120,28 @@ if (isset($matches[1])) {
     <footer>
         <p>&copy; 2025 PlantPals. 💚 Semua hak cipta dilindungi.</p>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateTotal(); // Calculate total on page load
+        });
+
+        function calculateTotal() {
+            const unitPrice = parseFloat(document.getElementById('rawProductPrice').value);
+            const quantity = parseInt(document.getElementById('quantity').value);
+
+            if (isNaN(quantity) || quantity < 1) {
+                document.getElementById('quantity').value = 1;
+                quantity = 1;
+            }
+
+            const total = unitPrice * quantity;
+            document.getElementById('totalPrice').innerText = formatRupiah(total);
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+    </script>
 </body>
 </html>
