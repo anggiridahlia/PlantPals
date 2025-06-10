@@ -9,7 +9,7 @@ if (!isset($_SESSION['username'])) {
     exit();
 }
 $username = htmlspecialchars($_SESSION['username']);
-$role = $_SESSION['role'] ?? 'buyer';
+$user_id = $_SESSION['id']; // Ambil user_id untuk fungsionalitas seperti 'Ikuti'
 
 // Inisialisasi keranjang jika belum ada
 if (!isset($_SESSION['cart'])) {
@@ -26,13 +26,8 @@ $popup_message = "";
 $popup_status = ""; // 'success' or 'error'
 
 // --- Fetch Stores from Database and Organize by seller_user_id (moved up) ---
-// Hanya ambil toko yang dimiliki oleh user dengan role 'seller'
 $stores_by_seller_id = [];
-$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id
-               FROM stores s
-               JOIN users u ON s.seller_user_id = u.id
-               WHERE u.role = 'seller'
-               ORDER BY s.name ASC";
+$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id, s.followers_count FROM stores s JOIN users u ON s.seller_user_id = u.id WHERE u.role = 'seller' ORDER BY s.name ASC"; // Get followers_count
 $result_stores = mysqli_query($conn, $sql_stores);
 if ($result_stores) {
     while ($row_store = mysqli_fetch_assoc($result_stores)) {
@@ -46,7 +41,7 @@ if ($result_stores) {
 // Fallback jika tidak ada toko yang terhubung ke seller di DB
 if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
     $stores_by_seller_id[$DEFAULT_FALLBACK_SELLER_ID] = [
-        ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID],
+        ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID, "followers_count" => 0], // Add followers_count
     ];
 }
 
@@ -54,12 +49,12 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
 // --- Handle Add to Cart Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     $product_id = $_POST['product_id'] ?? null;
-    $quantity = 1; // Default quantity for adding to cart
+    $quantity = 1;
 
     if ($product_id) {
         $sql_product = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                         FROM products p
-                        WHERE p.id = ?"; // Hapus LEFT JOIN users karena tidak selalu ada role seller untuk produk
+                        WHERE p.id = ?"; 
         
         if ($stmt_product = mysqli_prepare($conn, $sql_product)) {
             mysqli_stmt_bind_param($stmt_product, "i", $product_id);
@@ -69,7 +64,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
             mysqli_stmt_close($stmt_product);
 
             if ($product_details) {
-                // Fetch store details for the product from $stores_by_seller_id
                 $selling_store_for_cart = null;
                 if (isset($product_details['seller_id']) && isset($stores_by_seller_id[$product_details['seller_id']])) {
                     $selling_store_for_cart = $stores_by_seller_id[$product_details['seller_id']][0] ?? null;
@@ -81,12 +75,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
                     $store_name_for_cart .= " - (" . htmlspecialchars($selling_store_for_cart['address']) . ")";
                 }
 
-                // Add or update item in cart
                 if (!isset($_SESSION['cart'])) {
                     $_SESSION['cart'] = [];
                 }
                 if (isset($_SESSION['cart'][$product_id])) {
-                    // Cek stok sebelum menambah kuantitas
                     if ($_SESSION['cart'][$product_id]['quantity'] + $quantity > $product_details['stock']) {
                         $popup_message = "Tidak dapat menambahkan. Stok untuk " . htmlspecialchars($product_details['name']) . " tidak mencukupi. Tersedia: " . htmlspecialchars($product_details['stock']) . ".";
                         $popup_status = "error";
@@ -96,7 +88,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
                         $popup_status = "success";
                     }
                 } else {
-                    // Cek stok untuk item baru
                     if ($quantity > $product_details['stock']) {
                          $popup_message = "Tidak dapat menambahkan. Stok untuk " . htmlspecialchars($product_details['name']) . " tidak mencukupi. Tersedia: " . htmlspecialchars($product_details['stock']) . ".";
                          $popup_status = "error";
@@ -106,7 +97,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
                             'name' => $product_details['name'],
                             'img' => $product_details['img'],
                             'price' => $product_details['price'],
-                            'stock' => $product_details['stock'], // Simpan stok saat ini untuk validasi di keranjang
+                            'stock' => $product_details['stock'],
                             'seller_id' => $product_details['seller_id'],
                             'store_id_string' => $store_id_for_cart,
                             'store_name' => $store_name_for_cart,
@@ -134,7 +125,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
     $new_quantity = intval($_POST['quantity'] ?? 0);
 
     if ($product_id && isset($_SESSION['cart'][$product_id])) {
-        // Re-fetch current stock from DB for absolute accuracy
         $current_db_stock = 0;
         $stmt_stock = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
         if ($stmt_stock) {
@@ -151,12 +141,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
                 $popup_message = "Kuantitas diperbarui.";
                 $popup_status = "success";
             } else {
-                $_SESSION['cart'][$product_id]['quantity'] = $current_db_stock; // Set ke maksimal stok yang ada
+                $_SESSION['cart'][$product_id]['quantity'] = $current_db_stock;
                 $popup_message = "Stok tidak mencukupi untuk kuantitas yang diminta. Kuantitas diatur ke: " . $current_db_stock . ".";
-                $popup_status = "error"; // Atau 'info' jika Anda ingin pesan yang lebih lembut
+                $popup_status = "error";
             }
         } else {
-            unset($_SESSION['cart'][$product_id]); // Remove if quantity is 0 or less
+            unset($_SESSION['cart'][$product_id]);
             $popup_message = "Produk dihapus dari keranjang.";
             $popup_status = "success";
         }
@@ -164,7 +154,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
         $popup_message = "Gagal memperbarui keranjang.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh, pass popup info via query params
     header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
@@ -180,7 +169,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'remove_from_cart') {
         $popup_message = "Gagal menghapus produk dari keranjang.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh, pass popup info via query params
     header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
@@ -191,7 +179,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
     $user_id_from_session = $_SESSION['id'];
 
     if ($order_id_to_cancel) {
-        // Fetch order details to check status and order_date
         $order_to_check = [];
         $sql_check_order = "SELECT order_status, order_date FROM orders WHERE id = ? AND user_id = ?";
         if ($stmt_check = mysqli_prepare($conn, $sql_check_order)) {
@@ -210,11 +197,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
             if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
                 ($order_to_check['order_status'] == 'pending' || $order_to_check['order_status'] == 'processing')) {
                 
-                // Start transaction for cancellation
                 mysqli_autocommit($conn, FALSE);
                 $cancel_success = true;
 
-                // 1. Update order status to 'cancelled'
                 $sql_update_status = "UPDATE orders SET order_status = 'cancelled' WHERE id = ? AND user_id = ?";
                 if ($stmt_update = mysqli_prepare($conn, $sql_update_status)) {
                     mysqli_stmt_bind_param($stmt_update, "ii", $order_id_to_cancel, $user_id_from_session);
@@ -228,7 +213,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
                     error_log("Error preparing cancel order status update: " . mysqli_error($conn));
                 }
 
-                // 2. Return product stock to original (sum quantities from order_items)
                 if ($cancel_success) {
                     $sql_get_items = "SELECT product_id, quantity FROM order_items WHERE order_id = ?";
                     if ($stmt_get_items = mysqli_prepare($conn, $sql_get_items)) {
@@ -240,7 +224,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
                             $product_id_returned = $item_row['product_id'];
                             $quantity_returned = $item_row['quantity'];
 
-                            // Get current stock
                             $current_stock = 0;
                             $stmt_current_stock = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
                             if ($stmt_current_stock) {
@@ -283,7 +266,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
                     $popup_message = "Gagal membatalkan pesanan #" . $order_id_to_cancel . ". Mohon coba lagi.";
                     $popup_status = "error";
                 }
-                mysqli_autocommit($conn, TRUE); // Re-enable autocommit
+                mysqli_autocommit($conn, TRUE);
 
             } else {
                 $popup_message = "Pesanan #" . $order_id_to_cancel . " tidak dapat dibatalkan. Mungkin sudah melewati batas waktu (1 jam) atau status tidak memungkinkan.";
@@ -297,7 +280,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
         $popup_message = "ID pesanan tidak valid untuk pembatalan.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh, pass popup info via query params
     header('Location: dashboard.php?page=orders&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
@@ -314,12 +296,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     $update_success = true;
     $update_errors = [];
 
-    // Basic validation
     if (empty($full_name_form)) { $update_errors[] = "Nama Lengkap tidak boleh kosong."; }
     if (empty($email_form) || !filter_var($email_form, FILTER_VALIDATE_EMAIL)) { $update_errors[] = "Format Email tidak valid."; }
-    // Phone and address can be empty
 
-    // Check if email already exists for another user
     if (empty($update_errors)) {
         $sql_check_email = "SELECT id FROM users WHERE email = ? AND id != ?";
         if ($stmt_check_email = mysqli_prepare($conn, $sql_check_email)) {
@@ -346,7 +325,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
             if (mysqli_stmt_execute($stmt_update_profile)) {
                 $popup_message = "Profil Anda berhasil diperbarui!";
                 $popup_status = "success";
-                // Update session username (if using full_name as display username)
                 $_SESSION['username'] = $full_name_form; 
             } else {
                 $popup_message = "Gagal memperbarui profil ke database. " . mysqli_stmt_error($stmt_update_profile);
@@ -360,19 +338,73 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
             error_log("Error preparing profile update statement: " . mysqli_error($conn));
         }
     }
-    // Redirect untuk menghindari form resubmission dan merefresh data tampilan profil
     header('Location: dashboard.php?page=profile&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
 
+// --- Handle Send Message Action (NEW) ---
+if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
+    $receiver_id = intval($_POST['receiver_id'] ?? 0); // Seller User ID
+    $store_id_msg = intval($_POST['store_id_msg'] ?? 0); // Store ID
+    $subject = trim($_POST['subject'] ?? '');
+    $message_content = trim($_POST['message_content'] ?? '');
+
+    if ($receiver_id <= 0 || empty($message_content)) {
+        $popup_message = "Penerima atau isi pesan tidak valid.";
+        $popup_status = "error";
+    } else {
+        // Basic validation: ensure receiver_id is a seller
+        $is_receiver_seller = false;
+        $stmt_check_role = mysqli_prepare($conn, "SELECT role FROM users WHERE id = ?");
+        if ($stmt_check_role) {
+            mysqli_stmt_bind_param($stmt_check_role, "i", $receiver_id);
+            mysqli_stmt_execute($stmt_check_role);
+            mysqli_stmt_bind_result($stmt_check_role, $role_check);
+            if (mysqli_stmt_fetch($stmt_check_role) && $role_check == 'seller') {
+                $is_receiver_seller = true;
+            }
+            mysqli_stmt_close($stmt_check_role);
+        }
+
+        if (!$is_receiver_seller) {
+            $popup_message = "Penerima pesan bukan penjual yang valid.";
+            $popup_status = "error";
+        } else if ($receiver_id == $user_id) {
+            $popup_message = "Anda tidak bisa mengirim pesan ke diri sendiri.";
+            $popup_status = "error";
+        } else {
+            $sql_insert_message = "INSERT INTO messages (sender_id, receiver_id, store_id, subject, message) VALUES (?, ?, ?, ?, ?)";
+            if ($stmt_insert_message = mysqli_prepare($conn, $sql_insert_message)) {
+                // If store_id_msg is 0, set to NULL in DB
+                $store_id_param = ($store_id_msg > 0) ? $store_id_msg : NULL; 
+                mysqli_stmt_bind_param($stmt_insert_message, "iiiss", $user_id, $receiver_id, $store_id_param, $subject, $message_content);
+                if (mysqli_stmt_execute($stmt_insert_message)) {
+                    $popup_message = "Pesan berhasil dikirim!";
+                    $popup_status = "success";
+                } else {
+                    $popup_message = "Gagal mengirim pesan: " . mysqli_stmt_error($stmt_insert_message);
+                    $popup_status = "error";
+                    error_log("Error sending message: " . mysqli_stmt_error($stmt_insert_message));
+                }
+                mysqli_stmt_close($stmt_insert_message);
+            } else {
+                $popup_message = "Terjadi kesalahan sistem saat menyiapkan pesan.";
+                $popup_status = "error";
+                error_log("Error preparing message insert statement: " . mysqli_error($conn));
+            }
+        }
+    }
+    header('Location: dashboard.php?page=chat&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
+    exit();
+}
+
+
 // --- Fetch Products from Database ---
-// Pastikan kita ambil seller_id dari produk dan hanya produk dari seller yang aktif/terdaftar
 $flowers_from_db = [];
-// Perbaiki query agar lebih aman dan akurat mengambil produk yang dijual
 $sql_products = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
-                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0 -- Hanya produk dari seller yang terdaftar dan memiliki stok
+                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
                  ORDER BY p.name ASC";
 $result_products = mysqli_query($conn, $sql_products);
 if ($result_products) {
@@ -380,18 +412,16 @@ if ($result_products) {
         $flowers_from_db[] = $row;
     }
 }
-// Jika database kosong, gunakan data fallback
 $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
 
 
-// --- Fetch Featured Products (e.g., top 4 random products or specific picks) ---
+// --- Fetch Featured Products ---
 $featured_products = [];
-// Select products from database, ensure they are from a seller, or have a fallback seller_id
 $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
                  WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                 ORDER BY RAND() LIMIT 4"; // Mengambil 4 produk acak sebagai unggulan
+                 ORDER BY RAND() LIMIT 4";
 $result_featured = mysqli_query($conn, $sql_featured);
 if ($result_featured) {
     while ($row = mysqli_fetch_assoc($result_featured)) {
@@ -406,7 +436,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     $popup_status = urldecode($_GET['popup_status']);
 }
 
-// No mysqli_close($conn); here, it will be at the very end of the file.
+mysqli_close($conn);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -418,12 +448,12 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     <link rel="stylesheet" href="/PlantPals/css/dashboard_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Gaya khusus untuk keranjang belanja (akan dipindahkan ke CSS eksternal nanti) */
+        /* Gaya khusus untuk keranjang belanja */
         .cart-item {
             display: flex;
             align-items: center;
             border: 1px solid #e0e0e0;
-            border-radius: 10px;
+            border-radius: 0;
             padding: 15px;
             margin-bottom: 15px;
             background-color: #fcfcfc;
@@ -433,7 +463,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             width: 100px;
             height: 100px;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 0;
             margin-right: 20px;
         }
         .cart-item-details {
@@ -449,7 +479,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
         .cart-item-details .price {
             font-size: 1.1rem;
             font-weight: bold;
-            color: #E5989B;
+            color: #D60050;
             margin-bottom: 10px;
         }
         .cart-item-actions {
@@ -461,7 +491,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             width: 70px;
             padding: 8px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 0;
             text-align: center;
             font-size: 1rem;
         }
@@ -470,7 +500,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             color: white;
             border: none;
             padding: 8px 12px;
-            border-radius: 5px;
+            border-radius: 0;
             cursor: pointer;
             transition: background-color 0.3s ease;
             font-size: 0.9em;
@@ -491,18 +521,18 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             margin-bottom: 20px;
         }
         .cart-summary .checkout-btn {
-            background-color: #4CAF50;
+            background-color: #000;
             color: white;
             padding: 15px 30px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
         .cart-summary .checkout-btn:hover {
-            background-color: #388e3c;
+            background-color: #333;
         }
         .empty-cart-message {
             text-align: center;
@@ -511,8 +541,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             margin-top: 30px;
             padding: 20px;
             background-color: #f9f9f9;
-            border-radius: 8px;
-            border: 1px dashed #ddd;
+            border-radius: 0;
+            border: 1px dashed #bbb;
         }
 
         /* Gaya untuk tombol "Lihat Detail" dan "Tambah ke Keranjang" */
@@ -520,43 +550,43 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px; /* Jarak antar tombol */
-            padding: 0 20px 20px; /* Padding sama seperti sebelumnya */
+            gap: 10px;
+            padding: 0 20px 20px;
         }
         .card-buttons-container .see-more-btn,
         .card-buttons-container .buy-button {
-            flex: 1; /* Agar tombol mengisi ruang yang tersedia */
-            width: auto; /* Override width: calc(100% - 40px) */
-            margin: 0; /* Hapus margin individu */
-            padding: 10px 15px; /* Sesuaikan padding agar lebih ringkas */
-            font-size: 0.95rem; /* Sesuaikan ukuran font */
+            flex: 1;
+            width: auto;
+            margin: 0;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            border-radius: 0;
         }
         .card-buttons-container .see-more-btn {
-            background-color: #3a5a20; /* Warna hijau untuk lihat detail */
-            color: white; /* Pastikan teks putih */
+            background-color: #333;
+            color: white;
         }
         .card-buttons-container .see-more-btn:hover {
-            background-color: #2f4d3a;
+            background-color: #000;
         }
-        .card-buttons-container .buy-button { /* Gaya untuk tombol 'Add' / 'Tambah ke Keranjang' */
-            /* Menggunakan warna pinkish dari tema */
-            background-color: #E5989B;
+        .card-buttons-container .buy-button {
+            background-color: #D60050;
             color: white;
         }
         .card-buttons-container .buy-button:hover {
-            background-color: rgb(182, 88, 117);
+            background-color: #A60040;
         }
 
         /* Penyesuaian untuk product-item-page di halaman products.php */
         .product-list-page {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 30px;
             padding: 0 20px;
             width: 100%;
         }
         .product-list-page .product-item-page .card-buttons-container {
-            flex-direction: column; /* Pada halaman produk, mungkin lebih baik bertumpuk */
+            flex-direction: column;
             gap: 10px;
             padding: 0 20px 20px;
         }
@@ -564,23 +594,22 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
              width: 100%;
         }
         .product-list-page .product-item-page .card-buttons-container .see-more-btn {
-            /* display: none; */ /* Jangan sembunyikan tombol detail di halaman daftar produk jika ingin fungsional */
             width: 100%;
         }
 
 
         /* Gaya baru untuk Banner Promosi */
         .promo-banner {
-            background: linear-gradient(to right, #d9f2d9, #f0fff0);
-            border-radius: 12px;
+            background-color: #e0e0e0;
+            border-radius: 0;
             padding: 30px;
             margin-bottom: 40px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         .promo-banner h3 {
             font-size: 2.2rem;
-            color: #3a5a20;
+            color: #000;
             margin-bottom: 15px;
         }
         .promo-banner p {
@@ -589,11 +618,11 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             margin-bottom: 25px;
         }
         .promo-banner .btn-promo {
-            background-color: #E5989B;
+            background-color: #D60050;
             color: white;
             padding: 12px 25px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -602,7 +631,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             display: inline-block;
         }
         .btn-promo:hover {
-            background-color: rgb(182, 88, 117);
+            background-color: #A60040;
         }
 
         /* Gaya baru untuk Produk Unggulan */
@@ -611,7 +640,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
         }
         .featured-products-section .section-heading {
             font-size: 2rem;
-            color: #3a5a20;
+            color: #000;
             text-align: center;
             margin-bottom: 30px;
             position: relative;
@@ -621,23 +650,23 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             display: block;
             width: 60px;
             height: 3px;
-            background: #E5989B;
+            background-color: #D60050;
             margin: 15px auto 0;
-            border-radius: 2px;
+            border-radius: 0;
         }
         .featured-products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 25px;
         }
-        .featured-item.card { /* Menggunakan kembali gaya .card */
-            text-align: left; /* Rata kiri untuk featured item */
+        .featured-item.card {
+            text-align: left;
         }
         .featured-item.card .card-content {
-            padding-bottom: 0; /* Hindari double padding dengan container tombol */
+            padding-bottom: 0;
         }
         .featured-item.card .card-buttons-container {
-             padding-top: 15px; /* Tambahkan padding atas untuk memisahkan dari konten */
+             padding-top: 15px;
         }
 
         /* Gaya Pop-up Notifikasi */
@@ -647,112 +676,207 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Latar belakang buram */
+            background-color: rgba(0, 0, 0, 0.7);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000; /* Pastikan di atas elemen lain */
+            z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
         }
         .popup-overlay.active {
             opacity: 1;
             visibility: visible;
         }
         .popup-box {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: 0;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
-            transform: translateY(-20px);
+            transform: translateY(-30px) scale(0.95);
             opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 2px solid #D60050;
         }
         .popup-overlay.active .popup-box {
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
             opacity: 1;
         }
         .popup-box .icon {
-            font-size: 3.5rem;
-            margin-bottom: 20px;
+            font-size: 4.5rem;
+            margin-bottom: 25px;
+            display: block;
+            line-height: 1;
         }
         .popup-box .icon.success {
-            color: #28a745; /* Hijau */
+            color: #28A745;
+            text-shadow: none;
         }
         .popup-box .icon.error {
-            color: #dc3545; /* Merah */
+            color: #DC3545;
+            text-shadow: none;
         }
         .popup-box h3 {
-            font-size: 1.8rem;
-            color: #333;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2rem;
+            color: #000000;
             margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
         .popup-box p {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             color: #666;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            line-height: 1.6;
         }
         .popup-box .close-btn {
-            background-color: #E5989B;
+            background-color: #000000;
             color: white;
-            padding: 10px 25px;
+            padding: 15px 35px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
             transition: background-color 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .popup-box .close-btn:hover {
-            background-color: rgb(182, 88, 117);
+            background-color: #333333;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
 
         /* Responsive untuk pop-up */
         @media (max-width: 480px) {
             .popup-box {
-                padding: 20px;
+                padding: 25px;
             }
             .popup-box .icon {
-                font-size: 3rem;
+                font-size: 4rem;
+                margin-bottom: 20px;
             }
             .popup-box h3 {
-                font-size: 1.5rem;
+                font-size: 1.7rem;
+                margin-bottom: 10px;
             }
             .popup-box p {
+                font-size: 1.05rem;
+                margin-bottom: 20px;
+            }
+            .popup-box .close-btn {
+                padding: 12px 30px;
                 font-size: 1rem;
             }
         }
 
         /* Gaya untuk tombol Batalkan Pesanan */
         .cancel-order-btn {
-            background-color: #dc3545; /* Merah */
+            background-color: #dc3545;
             color: white;
             padding: 8px 15px;
             border: none;
-            border-radius: 5px;
+            border-radius: 0;
             cursor: pointer;
             font-size: 0.9em;
             transition: background-color 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            margin-left: 10px; /* Jarak dari status badge */
+            margin-left: 10px;
         }
         .cancel-order-btn:hover {
             background-color: #c82333;
         }
         .order-summary-footer .status-badge {
-            margin-right: 0; /* Hapus margin kanan jika ada agar tombol cancel bisa mendekat */
+            margin-right: 0;
         }
         @media (max-width: 768px) {
-            .order-summary-footer .status-badge + .cancel-order-btn { /* Untuk mobile, agar tombol di baris baru */
+            .order-summary-footer .status-badge + .cancel-order-btn {
                 margin-left: 0;
                 margin-top: 10px;
             }
         }
+
+        /* NEW: Chat Specific Styles (Buyer Dashboard) */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .chat-form-panel {
+            background: #FFFFFF;
+            padding: 30px;
+            border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .chat-form-panel h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.8rem;
+            color: #000;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .chat-messages-panel {
+            background: #f9f9f9;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            min-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message-item {
+            background-color: #e0e0e0;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border: 1px solid #bbb;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message-item.sent {
+            align-self: flex-end;
+            background-color: #D60050;
+            color: white;
+        }
+        .chat-message-item.received {
+            align-self: flex-start;
+            background-color: #000000;
+            color: white;
+        }
+        .message-sender {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.8);
+        }
+        .chat-message-item.sent .message-sender {
+             color: rgba(255,255,255,0.8);
+        }
+        .message-content {
+            font-size: 1rem;
+        }
+        .message-date {
+            font-size: 0.8em;
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+            text-align: right;
+        }
+        .no-messages {
+            text-align: center;
+            color: #777;
+            font-size: 1.1em;
+            padding: 20px;
+        }
+
     </style>
 </head>
 <body>
@@ -769,6 +893,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             <a href="dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>"><i class="fas fa-seedling"></i> Produk</a>
             <a href="dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang (<?php echo count($_SESSION['cart']); ?>)</a>
             <a href="dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
+            <a href="dashboard.php?page=chat" class="<?php echo ($page == 'chat') ? 'active' : ''; ?>"><i class="fas fa-comments"></i> Pesan Saya</a>
             <a href="dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
             <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
         </nav>
@@ -819,7 +944,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
 
                 <h2 class="section-heading">Semua Produk</h2> <div id="flowerGrid" class="grid">
                 <?php
-                // Logika pencarian
                 $filtered_flowers_for_display = [];
                 $keyword = isset($_GET['q']) ? strtolower(trim($_GET['q'])) : '';
 
@@ -835,7 +959,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                         }
                     }
                 } else {
-                    $filtered_flowers_for_display = $flowers_to_display; // Tampilkan semua jika tidak ada pencarian
+                    $filtered_flowers_for_display = $flowers_to_display;
                 }
 
                 if (empty($filtered_flowers_for_display)) {
@@ -880,22 +1004,20 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             }
                             $store_link = "#";
                             $store_name_display = "Toko Tidak Dikenal";
-                            // Pastikan store_id_string ada untuk order_form
                             $store_id_string_for_order = "";
                             $store_name_full_for_order = "";
 
                             if ($selling_store) {
-                                // Pastikan store_id_string ada
                                 $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string'] ?? '');
                                 if (!empty($store_id_string_for_order)) {
-                                    // Arahkan ke store_profile_buyer.php
                                     $store_link = "store_profile_buyer.php?store_id_string=" . urlencode($store_id_string_for_order);
                                 }
                                 $store_name_display = htmlspecialchars($selling_store['name']);
                                 $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . ($selling_store['address'] ?? 'Alamat Tidak Diketahui') . ")");
                             }
                         ?>
-                        <div class="product-item-page card"> <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
+                        <div class="product-item-page card">
+                            <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
                             <div class="card-content">
                                 <h4><?php echo htmlspecialchars($flower['name']); ?></h4>
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
@@ -925,7 +1047,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'cart') {
-                // Halaman Keranjang Belanja - Implementasi
                 $cart_items = $_SESSION['cart'] ?? [];
                 $total_cart_amount = 0;
                 ?>
@@ -984,7 +1105,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'profile') {
-                // Koneksi sudah ada dari config.php di awal file
                 $user_data = [];
                 $sql_user = "SELECT id, username, email, full_name, phone_number, address, created_at, role FROM users WHERE id = ?";
                 if ($stmt_user = mysqli_prepare($conn, $sql_user)) {
@@ -994,7 +1114,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                     $user_data = mysqli_fetch_assoc($result_user);
                     mysqli_stmt_close($stmt_user);
                 }
-                // --- Display Profile or Edit Form ---
                 $is_editing_profile = (isset($_GET['action']) && $_GET['action'] == 'edit_profile');
                 ?>
                 <div class="page-content-panel">
@@ -1046,9 +1165,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'orders') {
-                // Koneksi sudah ada dari config.php di awal file
                 $user_orders = [];
-                // UBAH: Tambahkan payment_method ke query
                 $sql_orders = "SELECT id, user_id, total_amount, order_status, payment_method, delivery_address, customer_name, customer_phone, customer_email, notes, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC";
                 if ($stmt_orders = mysqli_prepare($conn, $sql_orders)) {
                     mysqli_stmt_bind_param($stmt_orders, "i", $_SESSION['id']);
@@ -1091,10 +1208,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                         <span><strong>Status:</strong> <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span>
                                         
                                         <?php
-                                        // Logika untuk menampilkan tombol batal
                                         $order_timestamp = strtotime($order['order_date']);
                                         $current_timestamp = time();
-                                        $one_hour_limit = 60 * 60; // 1 jam
+                                        $one_hour_limit = 60 * 60;
                                         $is_cancel_enabled = (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
                                             ($order['order_status'] == 'pending' || $order['order_status'] == 'processing'));
                                         if ($is_cancel_enabled):
@@ -1122,6 +1238,114 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                     <?php endif; ?>
                 </div>
                 <?php
+            } elseif ($page == 'chat') { // NEW CHAT PAGE
+                $target_seller_id = isset($_GET['seller_id']) ? intval($_GET['seller_id']) : 0;
+                $target_store_id = isset($_GET['store_id']) ? intval($_GET['store_id']) : 0;
+                $default_subject = isset($_GET['subject']) ? htmlspecialchars($_GET['subject']) : '';
+                $default_message_content = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
+
+                $seller_username_target = 'Pilih Penjual';
+                $store_name_target = 'Tidak Dikenal';
+
+                $sellers_for_chat = [];
+                $sql_sellers_chat = "SELECT u.id, u.username, s.id as store_db_id, s.name as store_name FROM users u JOIN stores s ON u.id = s.seller_user_id WHERE u.role = 'seller' ORDER BY u.username ASC";
+                $result_sellers_chat = mysqli_query($conn, $sql_sellers_chat);
+                if ($result_sellers_chat) {
+                    while ($row = mysqli_fetch_assoc($result_sellers_chat)) {
+                        $sellers_for_chat[] = $row;
+                        if ($row['id'] == $target_seller_id) {
+                            $seller_username_target = htmlspecialchars($row['username']);
+                            $store_name_target = htmlspecialchars($row['store_name']);
+                            $target_store_id = $row['store_db_id']; // Ensure target_store_id is set if coming from seller_id
+                        }
+                    }
+                }
+                if ($target_seller_id == 0 && !empty($sellers_for_chat)) {
+                    $target_seller_id = $sellers_for_chat[0]['id'];
+                    $seller_username_target = htmlspecialchars($sellers_for_chat[0]['username']);
+                    $store_name_target = htmlspecialchars($sellers_for_chat[0]['store_name']);
+                    $target_store_id = $sellers_for_chat[0]['store_db_id'];
+                }
+
+                // Fetch messages for the current user (as sender or receiver)
+                $messages = [];
+                $sql_messages = "SELECT m.*, s.name as sender_username, r.username as receiver_username, st.name as related_store_name
+                                FROM messages m
+                                JOIN users s ON m.sender_id = s.id
+                                JOIN users r ON m.receiver_id = r.id
+                                LEFT JOIN stores st ON m.store_id = st.id
+                                WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+                                ORDER BY m.sent_at ASC";
+                if ($stmt_messages = mysqli_prepare($conn, $sql_messages)) {
+                    mysqli_stmt_bind_param($stmt_messages, "iiii", $user_id, $target_seller_id, $target_seller_id, $user_id);
+                    mysqli_stmt_execute($stmt_messages);
+                    $result_messages = mysqli_stmt_get_result($stmt_messages);
+                    while($row = mysqli_fetch_assoc($result_messages)) {
+                        $messages[] = $row;
+                    }
+                    mysqli_stmt_close($stmt_messages);
+                }
+            ?>
+                <div class="page-content-panel">
+                    <h2><i class="fas fa-comments"></i> Pesan Saya</h2>
+                    <p class="page-description">Kirim pesan kepada penjual atau lihat riwayat percakapan Anda.</p>
+
+                    <div class="chat-container">
+                        <div class="chat-form-panel">
+                            <h3>Kirim Pesan ke Penjual</h3>
+                            <form action="dashboard.php" method="post">
+                                <input type="hidden" name="action" value="send_message">
+                                <input type="hidden" name="receiver_id" value="<?php echo htmlspecialchars($target_seller_id); ?>">
+                                <input type="hidden" name="store_id_msg" value="<?php echo htmlspecialchars($target_store_id); ?>">
+
+                                <div class="form-group">
+                                    <label for="chat_receiver">Penerima:</label>
+                                    <select id="chat_receiver" name="receiver_id_select" onchange="window.location.href='dashboard.php?page=chat&seller_id=' + this.value + '&store_id=' + this.options[this.selectedIndex].dataset.storeid">
+                                        <?php if (empty($sellers_for_chat)): ?>
+                                            <option value="">Tidak ada penjual tersedia</option>
+                                        <?php else: ?>
+                                            <?php foreach ($sellers_for_chat as $seller_chat_option): ?>
+                                                <option value="<?php echo htmlspecialchars($seller_chat_option['id']); ?>" data-storeid="<?php echo htmlspecialchars($seller_chat_option['store_db_id']); ?>" <?php echo ($seller_chat_option['id'] == $target_seller_id) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($seller_chat_option['username']); ?> (<?php echo htmlspecialchars($seller_chat_option['store_name']); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="subject">Subjek:</label>
+                                    <input type="text" id="subject" name="subject" value="<?php echo htmlspecialchars($default_subject); ?>" placeholder="Subjek pesan Anda">
+                                </div>
+                                <div class="form-group">
+                                    <label for="message_content">Pesan:</label>
+                                    <textarea id="message_content" name="message_content" rows="6" required placeholder="Tulis pesan Anda di sini..."><?php echo htmlspecialchars($default_message_content); ?></textarea>
+                                </div>
+                                <button type="submit" class="btn-primary">Kirim Pesan</button>
+                            </form>
+                        </div>
+
+                        <div class="chat-messages-panel">
+                            <h3>Riwayat Pesan dengan <?php echo $seller_username_target; ?></h3>
+                            <?php if (empty($messages)): ?>
+                                <p class="no-messages">Belum ada pesan dalam percakapan ini.</p>
+                            <?php else: ?>
+                                <?php foreach ($messages as $msg): ?>
+                                    <div class="chat-message-item <?php echo ($msg['sender_id'] == $user_id) ? 'sent' : 'received'; ?>">
+                                        <span class="message-sender">
+                                            <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username']); ?> 
+                                            <?php if ($msg['related_store_name']): ?>
+                                                (Toko: <?php echo htmlspecialchars($msg['related_store_name']); ?>)
+                                            <?php endif; ?>
+                                        </span>
+                                        <p class="message-content"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></p>
+                                        <span class="message-date"><?php echo htmlspecialchars(date('d M Y, H:i', strtotime($msg['sent_at']))); ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php
             } elseif ($page == 'contact') {
                 ?>
                 <div class="page-content-panel">
@@ -1146,7 +1370,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             <label for="contactMessage"><i class="fas fa-comment-dots"></i> Pesan Anda:</label>
                             <textarea id="contactMessage" placeholder="Tulis pesan Anda di sini..." name="message" rows="6"></textarea>
                         </div>
-                        <button type="submit" class="submit-button"><i class="fas fa-paper-plane"></i> Kirim Pesan</button>
+                        <button type="submit" class="submit-button">
+                            <i class="fas fa-paper-plane"></i> Kirim Pesan
+                        </button>
                     </form>
                 </div>
                 <?php
@@ -1175,7 +1401,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     </div>
 
     <script>
-        // Fungsi untuk menampilkan pop-up
         function showPopup(message, status) {
             const overlay = document.getElementById('statusPopupOverlay');
             const popupBox = overlay.querySelector('.popup-box');
@@ -1185,14 +1410,14 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             const popupCloseBtn = document.getElementById('popupCloseBtn');
 
             popupMessage.textContent = message;
-            popupIcon.className = 'icon'; // Reset kelas ikon
+            popupIcon.className = 'icon';
             if (status === 'success') {
-                popupIcon.classList.add('success', 'fas', 'fa-check-circle');
+                popupIcon.classList.add('fas', 'fa-check-circle', 'success');
                 popupTitle.textContent = 'Berhasil!';
             } else if (status === 'error') {
-                popupIcon.classList.add('error', 'fas', 'fa-times-circle');
+                popupIcon.classList.add('fas', 'fa-times-circle', 'error');
                 popupTitle.textContent = 'Gagal!';
-            } else { // Default jika status tidak dikenali
+            } else {
                 popupIcon.classList.add('fas', 'fa-info-circle');
                 popupTitle.textContent = 'Informasi';
             }
@@ -1201,20 +1426,13 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
 
             popupCloseBtn.onclick = function() {
                 overlay.classList.remove('active');
-                // Clear URL parameters related to popup after closing
                 const url = new URL(window.location.href);
                 url.searchParams.delete('popup_message');
                 url.searchParams.delete('popup_status');
-                window.history.replaceState({}, document.title, url); // Remove from URL without reloading
+                window.history.replaceState({}, document.title, url);
             };
-
-            // Opsional: Tutup otomatis setelah beberapa detik
-            // setTimeout(() => {
-            //     overlay.classList.remove('active');
-            // }, 3000);
         }
 
-        // Tangkap pesan pop-up dari PHP jika ada
         <?php if (!empty($popup_message)): ?>
             document.addEventListener('DOMContentLoaded', function() {
                 showPopup("<?php echo $popup_message; ?>", "<?php echo $popup_status; ?>");
@@ -1223,7 +1441,3 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     </script>
 </body>
 </html>
-<?php
-// Close connection once at the very end of the file
-mysqli_close($conn);
-?>
