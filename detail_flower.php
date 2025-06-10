@@ -13,6 +13,122 @@ $username = htmlspecialchars($_SESSION['username']);
 include 'data.php';
 require_once 'config.php'; // Database connection, now opened once.
 
+// --- Fetch ALL stores from database and Organize by seller_user_id ---
+// Bagian ini dipindahkan ke atas agar bisa digunakan oleh logika add_to_cart
+$stores_by_seller_id = [];
+$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id
+               FROM stores s
+               JOIN users u ON s.seller_user_id = u.id
+               WHERE u.role = 'seller'
+               ORDER BY s.name ASC";
+$result_stores = mysqli_query($conn, $sql_stores);
+if ($result_stores) {
+    while ($row_store = mysqli_fetch_assoc($result_stores)) {
+        $seller_id_for_store = $row_store['seller_user_id'];
+        if (!isset($stores_by_seller_id[$seller_id_for_store])) {
+            $stores_by_seller_id[$seller_id_for_store] = [];
+        }
+        $stores_by_seller_id[$seller_id_for_store][] = $row_store;
+    }
+} else {
+    // Fallback for stores if DB fetch fails or no stores linked to seller
+    if (isset($DEFAULT_FALLBACK_SELLER_ID)) {
+        $stores_by_seller_id = [
+            $DEFAULT_FALLBACK_SELLER_ID => [
+                ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID],
+            ],
+        ];
+    }
+}
+
+// --- Handle Add to Cart Action from this page ---
+// Tambahkan logging untuk debugging
+error_log("detail_flower.php: Request method is " . $_SERVER['REQUEST_METHOD']);
+if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart_from_detail') {
+    error_log("detail_flower.php: Add to cart action detected.");
+    $product_id = $_POST['product_id'] ?? null;
+    $quantity = 1; // Default quantity for adding to cart from detail page, can be expanded to allow user input
+
+    if ($product_id) {
+        error_log("detail_flower.php: Product ID " . $product_id . " received for add to cart.");
+        $sql_product_for_cart = "SELECT p.id, p.name, p.img, p.price, p.stock, p.seller_id
+                                FROM products p
+                                LEFT JOIN users u ON p.seller_id = u.id
+                                WHERE p.id = ? AND (u.role = 'seller' OR p.seller_id IS NULL)";
+        
+        // Debugging koneksi dan prepared statement
+        if (!$conn) {
+            error_log("detail_flower.php: DB connection is null before prepare statement.");
+            echo "<script>alert('ERROR: Koneksi database tidak aktif. Mohon coba lagi.'); window.location.href='dashboard.php?page=home';</script>";
+            exit();
+        }
+
+        if ($stmt_product_for_cart = mysqli_prepare($conn, $sql_product_for_cart)) {
+            mysqli_stmt_bind_param($stmt_product_for_cart, "i", $product_id);
+            if (mysqli_stmt_execute($stmt_product_for_cart)) {
+                $result_product_for_cart = mysqli_stmt_get_result($stmt_product_for_cart);
+                $product_details_for_cart = mysqli_fetch_assoc($result_product_for_cart);
+                mysqli_stmt_close($stmt_product_for_cart);
+
+                if ($product_details_for_cart) {
+                    error_log("detail_flower.php: Product details fetched for ID " . $product_id);
+                    // Fetch store details for the product
+                    $selling_store_for_cart = null;
+                    if (isset($product_details_for_cart['seller_id']) && isset($stores_by_seller_id[$product_details_for_cart['seller_id']])) {
+                        $selling_store_for_cart = $stores_by_seller_id[$product_details_for_cart['seller_id']][0] ?? null;
+                    }
+
+                    $store_id_for_cart = $selling_store_for_cart['store_id_string'] ?? 'N/A';
+                    $store_name_for_cart = $selling_store_for_cart['name'] ?? 'Toko Tidak Dikenal';
+                    if ($selling_store_for_cart && $selling_store_for_cart['address']) {
+                        $store_name_for_cart .= " - (" . htmlspecialchars($selling_store_for_cart['address']) . ")";
+                    }
+
+                    // Add or update item in cart session
+                    if (!isset($_SESSION['cart'])) {
+                        $_SESSION['cart'] = [];
+                    }
+                    if (isset($_SESSION['cart'][$product_id])) {
+                        $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+                    } else {
+                        $_SESSION['cart'][$product_id] = [
+                            'id' => $product_details_for_cart['id'],
+                            'name' => $product_details_for_cart['name'],
+                            'img' => $product_details_for_cart['img'],
+                            'price' => $product_details_for_cart['price'],
+                            'stock' => $product_details_for_cart['stock'],
+                            'seller_id' => $product_details_for_cart['seller_id'],
+                            'store_id_string' => $store_id_for_cart,
+                            'store_name' => $store_name_for_cart,
+                            'quantity' => $quantity,
+                        ];
+                    }
+                    error_log("detail_flower.php: Product " . $product_details_for_cart['name'] . " added to cart. Redirecting.");
+                    echo "<script>alert('Produk berhasil ditambahkan ke keranjang!'); window.location.href='dashboard.php?page=cart';</script>";
+                    exit();
+                } else {
+                    error_log("detail_flower.php: Product not found in DB for ID " . $product_id);
+                    echo "<script>alert('Produk tidak ditemukan atau tidak tersedia.'); window.location.href='dashboard.php?page=home';</script>";
+                    exit();
+                }
+            } else {
+                error_log("detail_flower.php: Error executing statement to fetch product details: " . mysqli_stmt_error($stmt_product_for_cart));
+                echo "<script>alert('Terjadi kesalahan database saat mengambil info produk. Mohon coba lagi.'); window.location.href='dashboard.php?page=home';</script>";
+                exit();
+            }
+        } else {
+            error_log("detail_flower.php: Error preparing product fetch for add_to_cart: " . mysqli_error($conn));
+            echo "<script>alert('Terjadi kesalahan sistem. Mohon coba lagi.'); window.location.href='dashboard.php?page=home';</script>";
+            exit();
+        }
+    } else {
+        error_log("detail_flower.php: Product ID not received for add to cart.");
+        echo "<script>alert('Produk tidak ditemukan atau tidak tersedia.'); window.location.href='dashboard.php?page=home';</script>";
+        exit();
+    }
+}
+
+
 $selected_flower = null;
 if (isset($_GET['name'])) {
     $flower_param = strtolower(str_replace('_', ' ', trim($_GET['name'])));
@@ -49,34 +165,6 @@ if (isset($_GET['name'])) {
     }
 }
 
-// Fetch ALL stores from database and Organize by seller_user_id
-// Pastikan hanya toko yang dimiliki oleh user dengan role 'seller'
-$stores_by_seller_id = [];
-$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id
-               FROM stores s
-               JOIN users u ON s.seller_user_id = u.id
-               WHERE u.role = 'seller'
-               ORDER BY s.name ASC";
-$result_stores = mysqli_query($conn, $sql_stores);
-if ($result_stores) {
-    while ($row_store = mysqli_fetch_assoc($result_stores)) {
-        $seller_id_for_store = $row_store['seller_user_id'];
-        if (!isset($stores_by_seller_id[$seller_id_for_store])) {
-            $stores_by_seller_id[$seller_id_for_store] = [];
-        }
-        $stores_by_seller_id[$seller_id_for_store][] = $row_store;
-    }
-} else {
-    // Fallback for stores if DB fetch fails or no stores linked to seller
-    // IMPORTANT: Seller IDs here must match actual seller IDs in your users table
-    if (isset($DEFAULT_FALLBACK_SELLER_ID)) {
-        $stores_by_seller_id = [
-            $DEFAULT_FALLBACK_SELLER_ID => [ // Using default seller ID from data.php
-                ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID],
-            ],
-        ];
-    }
-}
 
 // Dapatkan informasi toko yang menjual produk yang dipilih
 $selling_store_detail = null;
@@ -104,7 +192,7 @@ $sql_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.descripti
             FROM products p
             LEFT JOIN users u ON p.seller_id = u.id
             WHERE u.role = 'seller' OR p.seller_id IS NULL
-            ORDER BY RAND()";
+            ORDER BY RAND() LIMIT 6"; // Mengambil 6 produk acak
 $result_all = mysqli_query($conn, $sql_all);
 if ($result_all) {
     while ($row = mysqli_fetch_assoc($result_all)) {
@@ -138,173 +226,6 @@ if ($selected_flower) {
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/detail_flower_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Mengatur ulang gaya .store-info-display yang sudah ada di dashboard_styles.css */
-        .store-info-display {
-            margin-top: 15px;
-            text-align: center;
-        }
-        .store-info-display .label {
-            font-weight: bold;
-            color: #3a5a20;
-            display: block;
-            margin-bottom: 5px;
-            display: flex; /* Untuk ikon */
-            align-items: center;
-            justify-content: center; /* Pusatkan label juga */
-            gap: 8px; /* Jarak antara ikon dan teks label */
-        }
-        .store-name-link {
-            display: inline-block;
-            padding: 8px 15px;
-            background-color: #f0f8ff; /* Light blue/white background */
-            border: 1px solid #c3d9c3; /* Light green border */
-            border-radius: 8px;
-            text-decoration: none;
-            color: #E5989B; /* Pinkish color */
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .store-name-link:hover {
-            background-color: #e6f7ff; /* Slightly darker on hover */
-            border-color: #E5989B;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .buy-button-detail {
-            margin-top: 20px;
-            /* Menggunakan gaya tombol dari main_styles.css atau dashboard_styles.css */
-            display: inline-flex; /* Untuk ikon */
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background-color: #E5989B;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-        }
-        .buy-button-detail:hover {
-            background-color: rgb(182, 88, 117);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 10px rgba(182, 88, 117, 0.4);
-        }
-
-        /* Gaya baru untuk bagian detail item bunga */
-        .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 15px; /* Jarak antara ikon dan teks */
-            margin-bottom: 10px;
-            font-size: 1.1em;
-            color: #555;
-            text-align: left; /* Biar rata kiri */
-        }
-        .detail-item i {
-            color: #E5989B; /* Warna ikon */
-            font-size: 1.3em;
-            width: 25px; /* Pastikan lebar ikon seragam */
-            text-align: center;
-            flex-shrink: 0; /* Jangan biarkan ikon menyusut */
-        }
-        .detail-item strong {
-            color: #3a5a20; /* Warna label hijau tua */
-            min-width: 120px; /* Lebar minimum untuk label agar rapi */
-        }
-        .detail-item .detail-value {
-            flex-grow: 1; /* Konten mengisi sisa ruang */
-        }
-
-        .flower-details-column {
-            padding: 30px;
-            text-align: center;
-        }
-        .flower-details-column h3 {
-            font-size: 2.2rem;
-            color: #3a5a20;
-            margin-bottom: 25px;
-            position: relative;
-        }
-        .flower-details-column h3::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 3px;
-            background: #E5989B;
-            margin: 15px auto 0;
-            border-radius: 2px;
-        }
-        .flower-details-column img {
-            max-width: 100%;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-
-        .purchase-column .section-heading {
-            font-size: 2.2rem;
-            color: #E5989B;
-            margin-bottom: 25px;
-            position: relative;
-        }
-        .purchase-column .section-heading::after {
-            content: '';
-            display: block;
-            width: 80px;
-            height: 4px;
-            background: #3a5a20;
-            margin: 15px auto 0;
-            border-radius: 2px;
-        }
-        .purchase-column .price-display {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #3a5a20;
-            margin-bottom: 30px;
-        }
-
-        /* Responsive adjustments for detail page */
-        @media (max-width: 768px) {
-            .main-content-area {
-                flex-direction: column;
-                margin: 20px;
-                padding: 0;
-            }
-            .flower-details-column, .purchase-column {
-                width: 100%;
-                margin-bottom: 20px;
-                padding: 20px;
-            }
-            .flower-details-column img {
-                height: 250px;
-            }
-            .flower-details-column h3, .purchase-column .section-heading {
-                font-size: 1.8rem;
-            }
-            .purchase-column .price-display {
-                font-size: 2rem;
-            }
-            .detail-item {
-                font-size: 1em;
-                flex-direction: column; /* Stack label and value vertically */
-                align-items: flex-start;
-                gap: 5px;
-            }
-            .detail-item strong {
-                min-width: unset;
-                width: 100%;
-            }
-            .detail-item .detail-value {
-                padding-left: 30px; /* Indent value slightly */
-            }
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -349,7 +270,7 @@ if ($selected_flower) {
             </div>
 
             <div class="purchase-column card-panel">
-                <h2 class="section-heading">Pesan Bunga Ini</h2>
+                <h2 class="section-heading">Beli Produk Ini</h2>
                 <p class="price-display">Rp <?php echo number_format($selected_flower['price'], 0, ',', '.'); ?></p>
                 <div class="store-info-display">
                     <span class="label"><i class="fas fa-store"></i> Dijual oleh:</span>
@@ -362,11 +283,13 @@ if ($selected_flower) {
                         <span class="store-name-link">Toko Tidak Dikenal</span>
                     <?php endif; ?>
                 </div>
-                <button class="buy-button-detail"
-                        onclick="handleOrder('<?php echo htmlspecialchars($selected_flower['name']); ?>', '<?php echo htmlspecialchars($selected_flower['price']); ?>', '<?php echo $store_id_string_for_order_detail; ?>', '<?php echo $store_name_full_for_order_detail; ?>');"
-                        <?php echo ($selling_store_detail ? '' : 'disabled'); ?>>
-                    <i class="fas fa-shopping-cart"></i> Pesan Sekarang
-                </button>
+                <form action="detail_flower.php" method="post" style="margin:0;">
+                    <input type="hidden" name="action" value="add_to_cart_from_detail">
+                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($selected_flower['id'] ?? ''); ?>"> <button type="submit" class="buy-button-detail"
+                            <?php echo ($selling_store_detail ? '' : 'disabled'); // Disable if no selling store found? ?>>
+                        <i class="fas fa-cart-plus"></i> Tambah ke Keranjang
+                    </button>
+                </form>
             </div>
         <?php else: ?>
             <div class="flower-details-column card-panel" style="text-align: center; width: 100%;">
@@ -377,8 +300,7 @@ if ($selected_flower) {
     </div>
 
     <?php if ($selected_flower && !empty($recommended_flowers)): ?>
-        <div class="main-content-area recommended-flowers-section-container card-panel">
-            <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Bunga Lainnya</h2>
+        <div class="recommended-flowers-section-container card-panel"> <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Bunga Lainnya</h2>
             <div class="recommended-grid">
                 <?php foreach ($recommended_flowers as $rec_flower): ?>
                     <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $rec_flower['name']))); ?>" class="recommended-item card">
@@ -396,26 +318,6 @@ if ($selected_flower) {
         <a href="/PlantPals/dashboard.php?page=home" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali ke Home</a>
     </div>
 
-    <footer>
-        <p>&copy; 2025 PlantPals. 💚 Semua hak cipta dilindungi.</p>
-    </footer>
-
-    <script>
-        function handleOrder(productName, productPrice, storeIdString, storeNameFull) {
-            if (storeIdString === "" || storeNameFull === "") {
-                alert("Informasi toko tidak lengkap untuk produk ini.");
-                return;
-            }
-
-            const urlParams = [];
-            urlParams.push('product_name=' + encodeURIComponent(productName));
-            urlParams.push('product_price=' + encodeURIComponent(productPrice));
-            urlParams.push('store_id=' + encodeURIComponent(storeIdString));
-            urlParams.push('store_name=' + encodeURIComponent(storeNameFull));
-
-            window.location.href = `/PlantPals/order_form.php?${urlParams.join('&')}`;
-        }
-    </script>
 </body>
 </html>
 <?php

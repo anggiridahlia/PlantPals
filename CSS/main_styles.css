@@ -32,14 +32,14 @@ a {
 }
 
 a:hover {
-    color: rgb(223, 135, 163); /* Darker pink on hover */
+    color: rgb(182, 88, 117); /* Darker pink on hover */
     text-decoration: underline;
 }
 
 /* Header styles */
 header {
-    background-color: hsl(0, 85%, 79%); /* Darker green */
-    color: rgba(211, 227, 200, 0.86);
+    background-color: #ffbbbb; /* Darker green */
+    color: white;
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
@@ -62,13 +62,33 @@ header h1 .emoji {
     line-height: 1; /* Align emoji with text */
 }
 
-/* NAVIGASI HEADER DIHAPUS DARI SINI UNTUK MENCEGAH DUPLIKASI DENGAN SIDEBAR */
+/* PENTING: Navigasi header di main_styles.css TIDAK disembunyikan */
+/* Aturan 'display: none;' untuk navigasi header harus ada di dashboard_styles.css (khusus pembeli) */
 header nav {
-    /* Dihapus atau disembunyikan untuk halaman pembeli */
-    display: none; /* Sembunyikan navigasi header untuk dashboard pembeli */
+    /* DEFAULT: display: flex; atau block; */
+    /* Pastikan TIDAK ADA display: none; di sini */
+    display: flex; /* Default agar nav muncul */
+    flex-wrap: wrap;
+    gap: 10px;
+    flex-grow: 1;
+    justify-content: center; /* Center nav items by default */
 }
-/* Hanya akan muncul di halaman non-dashboard seperti login/register/unauthorized */
 
+header nav a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    display: flex; /* For icon alignment */
+    align-items: center;
+    gap: 5px; /* Space between icon and text */
+}
+
+header nav a:hover {
+    background-color: #55803a; /* Lighter green on hover */
+    text-decoration: none;
+}
 
 .logout-btn {
     background-color: #E5989B; /* Pinkish color for logout */
@@ -184,9 +204,19 @@ footer {
         margin-bottom: 10px;
     }
 
-    /* Di sini, navigasi header disembunyikan dan akan diganti oleh sidebar responsive */
+    /* Di sini, aturan untuk nav header harus diatur ulang jika ingin muncul di beberapa halaman, */
+    /* tetapi tetap disembunyikan di dashboard_styles.css untuk pembeli. */
+    /* Untuk main_styles.css, biarkan dia default flex atau block, */
+    /* agar tidak menimpa header admin/seller */
     header nav {
-        display: none; /* Pastikan tidak muncul di mobile dashboard */
+        flex-direction: column; /* Stack nav items vertically */
+        align-items: center;
+        width: 100%;
+    }
+    header nav a {
+        width: 100%;
+        text-align: center;
+        padding: 10px 15px;
     }
 
     .logout-btn {

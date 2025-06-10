@@ -66,11 +66,11 @@ mysqli_close($conn);
 
     <div class="stats-grid">
         <div class="stat-card card-panel">
-            <h3>Produk Anda</h3>
+            <h3>Total Produk Anda</h3>
             <p><?php echo $seller_products_count; ?></p>
         </div>
         <div class="stat-card card-panel">
-            <h3>Total Penjualan</h3>
+            <h3>Total Penjualan Anda</h3>
             <p>Rp <?php echo number_format($seller_total_sales_amount, 0, ',', '.'); ?></p>
         </div>
         <div class="stat-card card-panel">

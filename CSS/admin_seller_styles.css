@@ -273,7 +273,7 @@
     font-weight: 500;
 }
 
-/* --- Responsive Adjustments (for Admin/Seller dashboards) --- */
+/* Responsive Adjustments (for Admin/Seller dashboards) */
 @media (max-width: 1200px) {
     .main-content { padding: 30px; }
     h1 { font-size: 2.5rem; margin-bottom: 30px; }
@@ -288,6 +288,34 @@
 }
 
 @media (max-width: 992px) { /* Tablet / Medium screens */
+    header { /* Styling untuk header yang digunakan admin/seller */
+        flex-direction: column; /* Header jadi kolom di layar kecil */
+        align-items: flex-start;
+        padding: 10px 15px;
+        gap: 10px;
+    }
+
+    header h1 {
+        margin-bottom: 10px; /* Jarak di bawah judul */
+    }
+
+    header nav { /* Navigasi di header admin/seller responsive */
+        flex-direction: column; /* Navigasi menjadi kolom */
+        width: 100%; /* Ambil lebar penuh */
+        align-items: flex-start; /* Sejajarkan ke kiri */
+        gap: 5px;
+    }
+
+    header nav a {
+        width: 100%; /* Link navigasi mengambil lebar penuh */
+        text-align: left; /* Teks rata kiri */
+    }
+
+    .logout-btn {
+        width: 100%; /* Tombol logout juga mengambil lebar penuh */
+        margin-top: 10px;
+    }
+
     .main-content { padding: 20px; margin: 25px auto; }
     h1 { font-size: 2.2rem; margin-bottom: 25px; }
     .section-header { flex-direction: column; align-items: flex-start; gap: 15px; margin-bottom: 20px; }

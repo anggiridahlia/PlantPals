@@ -33,9 +33,9 @@
 
 .sidebar a:hover,
 .sidebar a.active {
-    background-color: #a2dba2ba;
-    border-left-color: #a2dba2ba;
-    color: #e69291;
+    background-color: #e6f7e6;
+    border-left-color: #E5989B;
+    color: #E5989B;
 }
 .sidebar a i {
     font-size: 1.1em;
@@ -47,6 +47,11 @@
     padding: 30px;
     background-color: #fff;
     /* max-width di sini tidak diperlukan karena flex-grow: 1; sudah mengatur lebar */
+}
+
+/* PENTING: Sembunyikan navigasi header HANYA di halaman pembeli */
+header nav {
+    display: none;
 }
 
 /* Page Specific Panels */
@@ -68,6 +73,24 @@
     text-align: center;
     margin-bottom: 30px;
 }
+/* Tambahan untuk judul section baru */
+.content h2.section-heading {
+    color: #3a5a20; /* Warna hijau tua untuk judul section */
+    font-size: 2rem;
+    margin-top: 40px; /* Jarak atas untuk memisahkan section */
+    margin-bottom: 25px;
+    position: relative;
+}
+.content h2.section-heading::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: #E5989B;
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+
 
 .search-bar {
     display: flex;
@@ -167,34 +190,41 @@
     margin-bottom: 15px;
     display: block; /* Pastikan harga di baris baru */
 }
-.buy-button, .see-more-btn { /* Sesuaikan juga tombol-tombolnya */
-    display: block;
-    width: calc(100% - 40px);
-    padding: 12px 15px;
-    margin: 0 20px 20px 20px;
+
+/* Gaya baru untuk container tombol di kartu produk */
+.card-buttons-container {
+    display: flex; /* Mengatur tombol berdampingan */
+    justify-content: space-between; /* Menjarakkan tombol ke ujung */
+    align-items: center;
+    gap: 10px; /* Jarak antar tombol */
+    padding: 0 20px 20px; /* Padding bawah yang konsisten */
+}
+.card-buttons-container .see-more-btn,
+.card-buttons-container .buy-button {
+    flex: 1; /* Agar tombol mengisi ruang yang tersedia secara merata */
+    width: auto; /* Override width: calc(100% - 40px) */
+    margin: 0; /* Hapus margin individu pada tombol */
+    padding: 10px 15px; /* Sesuaikan padding agar lebih ringkas */
+    font-size: 0.95rem; /* Sesuaikan ukuran font */
+}
+.card-buttons-container .see-more-btn {
+    background-color: #3a5a20; /* Warna hijau untuk lihat detail */
+    color: white; /* Pastikan teks putih */
+}
+.card-buttons-container .see-more-btn:hover {
+    background-color: #2f4d3a;
+}
+.card-buttons-container .buy-button { /* Gaya untuk tombol 'Add' / 'Tambah ke Keranjang' */
+    /* Menggunakan warna pinkish dari tema */
     background-color: #E5989B;
     color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-    text-align: center;
-    text-decoration: none; /* For anchor tags */
-    display: flex; /* For icon alignment */
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Space between icon and text */
 }
-.buy-button:hover, .see-more-btn:hover {
+.card-buttons-container .buy-button:hover {
     background-color: rgb(182, 88, 117);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 10px rgba(182, 88, 117, 0.4);
 }
 
 
-/* Product List Page Specifics */
+/* Product List Page Specifics (Penyesuaian tombol) */
 .product-list-page {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -202,6 +232,19 @@
     padding: 0 20px;
     width: 100%; /* Pastikan grid ini mengambil lebar penuh yang tersedia */
 }
+
+.product-item-page .card-buttons-container {
+    flex-direction: column; /* Pada halaman produk, tombol bisa bertumpuk untuk konsistensi */
+    gap: 10px;
+    padding: 0 20px 20px;
+}
+.product-item-page .card-buttons-container .buy-button {
+    width: 100%; /* Tombol Add/Cart mengisi penuh di halaman produk */
+}
+.product-item-page .card-buttons-container .see-more-btn {
+    display: none; /* Sembunyikan tombol detail jika tidak diperlukan di halaman daftar produk */
+}
+
 
 .product-item-page .store-info-display {
     margin-top: 10px;
@@ -547,6 +590,20 @@
         height: 160px;
     }
 
+    /* Penyesuaian untuk card-buttons-container di mobile */
+    .card-buttons-container {
+        flex-direction: column; /* Tombol bertumpuk di mobile */
+        gap: 8px; /* Jarak antar tombol */
+        padding: 0 15px 15px; /* Padding lebih ringkas di mobile */
+    }
+    .card-buttons-container .see-more-btn,
+    .card-buttons-container .buy-button {
+        width: 100%; /* Tombol mengambil lebar penuh di mobile */
+        font-size: 0.9rem; /* Ukuran font lebih kecil */
+        padding: 8px 12px; /* Padding lebih kecil */
+    }
+
+
     .product-list-page {
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
         gap: 20px;
@@ -580,6 +637,35 @@
         align-items: center;
         gap: 5px;
         text-align: center;
+    }
+
+    /* Gaya baru untuk Banner Promosi di Mobile */
+    .promo-banner {
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    .promo-banner h3 {
+        font-size: 1.8rem;
+    }
+    .promo-banner p {
+        font-size: 1rem;
+    }
+    .promo-banner .btn-promo {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    /* Gaya baru untuk Produk Unggulan di Mobile */
+    .featured-products-section .section-heading {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+    }
+    .featured-products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Lebih ringkas di mobile */
+        gap: 20px;
+    }
+    .featured-item.card img {
+        height: 140px; /* Lebih kecil di mobile */
     }
 }
 
@@ -617,8 +703,8 @@
     .buy-button, .see-more-btn {
         font-size: 1rem;
         padding: 10px 15px;
-        width: calc(100% - 30px);
-        margin: 0 15px 15px 15px;
+        /* width: calc(100% - 30px); DIHAPUS, karena sudah diatur di .card-buttons-container */
+        margin: 0; /* Pastikan margin 0 di sini juga */
     }
 
     .product-list-page {
@@ -638,5 +724,36 @@
     }
     .contact-form .form-group label {
         justify-content: center;
+    }
+
+    /* Penyesuaian untuk cart-item di mobile kecil */
+    .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .cart-item img {
+        width: 80px;
+        height: 80px;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    .cart-item-details {
+        width: 100%; /* Ambil lebar penuh */
+    }
+    .cart-item-actions {
+        width: 100%;
+        justify-content: flex-end; /* Dorong aksi ke kanan */
+    }
+    .cart-item-actions input[type="number"] {
+        width: 60px;
+        font-size: 0.9rem;
+    }
+    .cart-summary p {
+        font-size: 1.2rem;
+    }
+    .cart-summary .checkout-btn {
+        padding: 12px 20px;
+        font-size: 1.1rem;
     }
 }
