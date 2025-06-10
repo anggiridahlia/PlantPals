@@ -11,11 +11,62 @@ require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'auth_middleware.php
 require_role('seller');
 require_once ROOT_PATH . 'config.php';
 
-$seller_id = $_SESSION['id'];
+$seller_id = $_SESSION['id']; // Dapatkan ID penjual yang sedang login
 
-$orders = [];
+// Logic to update order status
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update_status') {
+    $order_id = intval($_POST['order_id']);
+    $new_status = trim($_POST['new_status']);
+
+    // Validate status
+    $allowed_statuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+    if (!in_array($new_status, $allowed_statuses)) {
+        echo "<script>alert('Status tidak valid.'); window.history.back();</script>";
+        exit;
+    }
+
+    // SECURITY: Check if this order contains products from this seller before updating
+    $check_sql = "SELECT COUNT(oi.id)
+                  FROM order_items oi
+                  JOIN products p ON oi.product_id = p.id
+                  WHERE oi.order_id = ? AND p.seller_id = ?";
+    if ($check_stmt = mysqli_prepare($conn, $check_sql)) {
+        mysqli_stmt_bind_param($check_stmt, "ii", $order_id, $seller_id);
+        mysqli_stmt_execute($check_stmt);
+        mysqli_stmt_bind_result($check_stmt, $item_count);
+        mysqli_stmt_fetch($check_stmt);
+        mysqli_stmt_close($check_stmt);
+
+        if ($item_count > 0) { // Only update if order has items from this seller
+            $stmt = mysqli_prepare($conn, "UPDATE orders SET order_status = ? WHERE id = ?");
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, "si", $new_status, $order_id);
+                if (!mysqli_stmt_execute($stmt)) {
+                    error_log("Error executing order status update in seller/orders.php: " . mysqli_stmt_error($stmt));
+                    echo "<script>alert('Terjadi kesalahan saat memperbarui status pesanan. Detail: " . mysqli_stmt_error($stmt) . " Mohon coba lagi.'); window.history.back();</script>";
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                error_log("Error preparing order status update in seller/orders.php: " . mysqli_error($conn));
+                echo "<script>alert('Terjadi kesalahan sistem saat menyiapkan pembaruan status. Mohon coba lagi.'); window.history.back();</script>";
+            }
+        } else {
+            error_log("Seller " . $seller_id . " attempted to update order " . $order_id . " which does not contain their products.");
+            echo "<script>alert('Anda tidak diizinkan untuk memperbarui pesanan ini.'); window.history.back();</script>";
+        }
+    } else {
+        error_log("Error preparing check_sql in seller/orders.php: " . mysqli_error($conn));
+        echo "<script>alert('Terjadi kesalahan sistem saat memverifikasi pesanan. Mohon coba lagi.'); window.history.back();</script>";
+    }
+    header("Location: orders.php");
+    exit;
+}
+
+// Fetch all orders with user and product details for display
 // SQL to fetch orders that contain at least one product from this seller
 // Using DISTINCT to avoid duplicate orders if multiple items from same seller are in one order
+$orders = [];
+// UBAH: Tambahkan payment_method ke query
 $sql = "SELECT DISTINCT o.*, u.username as buyer_username
         FROM orders o
         JOIN users u ON o.user_id = u.id
@@ -49,57 +100,6 @@ if ($stmt = mysqli_prepare($conn, $sql)) {
     }
     mysqli_stmt_close($stmt);
 }
-
-// Logic to update order status (similar to admin, but needs to check if order items belong to this seller)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'update_status') {
-    $order_id = intval($_POST['order_id']);
-    $new_status = trim($_POST['new_status']);
-
-    // Validate status
-    $allowed_statuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
-    if (!in_array($new_status, $allowed_statuses)) {
-        echo "<script>alert('Status tidak valid.'); window.history.back();</script>";
-        exit;
-    }
-
-    // SECURITY: Check if this order contains products from this seller before updating
-    // This prevents a seller from updating an order that doesn't involve their products.
-    $check_sql = "SELECT COUNT(oi.id)
-                  FROM order_items oi
-                  JOIN products p ON oi.product_id = p.id
-                  WHERE oi.order_id = ? AND p.seller_id = ?";
-    if ($check_stmt = mysqli_prepare($conn, $check_sql)) {
-        mysqli_stmt_bind_param($check_stmt, "ii", $order_id, $seller_id);
-        mysqli_stmt_execute($check_stmt);
-        mysqli_stmt_bind_result($check_stmt, $item_count);
-        mysqli_stmt_fetch($check_stmt);
-        mysqli_stmt_close($check_stmt);
-
-        if ($item_count > 0) { // Only update if order has items from this seller
-            $stmt = mysqli_prepare($conn, "UPDATE orders SET order_status = ? WHERE id = ?");
-            if ($stmt) {
-                mysqli_stmt_bind_param($stmt, "si", $new_status, $order_id);
-                if (!mysqli_stmt_execute($stmt)) {
-                    error_log("Error executing order status update in seller/orders.php: " . mysqli_stmt_error($stmt));
-                    echo "<script>alert('Terjadi kesalahan saat memperbarui status pesanan. Detail: " . mysqli_stmt_error($stmt) . " Mohon coba lagi.'); window.history.back();</script>";
-                }
-                mysqli_stmt_close($stmt);
-            } else {
-                error_log("Error preparing order status update in seller/orders.php: " . mysqli_error($conn));
-                echo "<script>alert('Terjadi kesalahan sistem saat menyiapkan pembaruan status. Mohon coba lagi.'); window.history.back();</script>";
-            }
-        } else {
-            // Log the attempt to update an unauthorized order
-            error_log("Seller " . $seller_id . " attempted to update order " . $order_id . " which does not contain their products.");
-            echo "<script>alert('Anda tidak diizinkan untuk memperbarui pesanan ini.'); window.history.back();</script>";
-        }
-    } else {
-        error_log("Error preparing check_sql in seller/orders.php: " . mysqli_error($conn));
-        echo "<script>alert('Terjadi kesalahan sistem saat memverifikasi pesanan. Mohon coba lagi.'); window.history.back();</script>";
-    }
-    header("Location: orders.php");
-    exit;
-}
 ?>
 <?php require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
 
@@ -111,8 +111,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         <?php foreach ($orders as $order): ?>
         <div class="order-card card-panel">
             <h3>Pesanan #<?php echo htmlspecialchars($order['id']); ?></h3>
-            <p><strong>Pembeli:</strong> <?php echo htmlspecialchars($order['buyer_username']); ?></p>
-            <p><strong>Status Pesanan:</strong>
+            <p><strong><i class="fas fa-user"></i> Pembeli:</strong> <?php echo htmlspecialchars($order['buyer_username']); ?></p>
+            <p><strong><i class="fas fa-truck"></i> Alamat Pengiriman:</strong> <?php echo htmlspecialchars($order['delivery_address']); ?></p>
+            <p><strong><i class="fas fa-phone"></i> Kontak Pembeli:</strong> <?php echo htmlspecialchars($order['customer_name']); ?> (<?php echo htmlspecialchars($order['customer_phone']); ?>)</p>
+            <p><strong><i class="fas fa-at"></i> Email:</strong> <?php echo htmlspecialchars($order['customer_email']); ?></p>
+            <p><strong><i class="fas fa-sticky-note"></i> Catatan:</strong> <?php echo htmlspecialchars($order['notes']); ?></p>
+            <p><strong><i class="fas fa-calendar-alt"></i> Tanggal Pesanan:</strong> <?php echo htmlspecialchars(date('d M Y H:i', strtotime($order['order_date']))); ?></p>
+            <p><strong><i class="fas fa-dollar-sign"></i> Total Jumlah Pesanan:</strong> Rp <?php echo number_format($order['total_amount'], 0, ',', '.'); ?></p>
+            <p><strong><i class="fas fa-credit-card"></i> Metode Pembayaran:</strong> <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $order['payment_method'] ?? 'N/A'))); ?></p>
+
+            <p><strong><i class="fas fa-info-circle"></i> Status Pesanan:</strong>
                 <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span>
                 <form action="orders.php" method="post" class="order-status-form">
                     <input type="hidden" name="action" value="update_status">
@@ -124,24 +132,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                         <option value="completed" <?php echo ($order['order_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
                         <option value="cancelled" <?php echo ($order['order_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                     </select>
-                    <button type="submit" class="update-btn">Update</button>
+                    <button type="submit" class="update-btn"><i class="fas fa-sync-alt"></i> Update</button>
                 </form>
             </p>
-            <p><strong>Alamat Pengiriman:</strong> <?php echo htmlspecialchars($order['delivery_address']); ?></p>
-            <p><strong>Kontak Pembeli:</strong> <?php echo htmlspecialchars($order['customer_name']); ?> (<?php echo htmlspecialchars($order['customer_phone']); ?>)</p>
-            <p><strong>Email:</strong> <?php echo htmlspecialchars($order['customer_email']); ?></p>
-            <p><strong>Catatan:</strong> <?php echo htmlspecialchars($order['notes']); ?></p>
-            <p><strong>Tanggal Pesanan:</strong> <?php echo htmlspecialchars(date('d M Y H:i', strtotime($order['order_date']))); ?></p>
             
             <h4>Produk Anda dalam Pesanan Ini:</h4>
             <ul>
-                <?php foreach ($order['items'] as $item): ?>
-                    <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> (dari toko: <?php echo htmlspecialchars($item['store_name']); ?>)</li>
-                <?php endforeach; ?>
+                <?php if (empty($order['items'])): ?>
+                    <li>Tidak ada produk dari toko Anda dalam pesanan ini (kemungkinan error data).</li>
+                <?php else: ?>
+                    <?php foreach ($order['items'] as $item): ?>
+                        <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> dari <?php echo htmlspecialchars($item['store_name']); ?></li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </ul>
         </div>
         <?php endforeach; ?>
     <?php endif; ?>
 
-<?php mysqli_close($conn); // Close connection after all data fetching and processing ?>
+<?php mysqli_close($conn); ?>
 <?php require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'footer.php'; ?>

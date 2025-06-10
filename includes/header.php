@@ -14,7 +14,8 @@ $current_username = $_SESSION['username'] ?? '';
     <title>PlantPals Dashboard</title>
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/admin_seller_styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> </head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 <body>
     <header>
         <h1><span class="emoji">🌿</span> PlantPals</h1>
@@ -28,7 +29,8 @@ $current_username = $_SESSION['username'] ?? '';
                 <a href="/PlantPals/seller/index.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/index.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard Penjual</a>
                 <a href="/PlantPals/seller/products.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/products.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-boxes"></i> Produk Saya</a>
                 <a href="/PlantPals/seller/orders.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/orders.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-receipt"></i> Pesanan Saya</a>
-                <?php endif; ?>
+                <a href="/PlantPals/seller/store_profile.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/store_profile.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-store"></i> Profil Toko</a>
+            <?php endif; ?>
         </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">
             <button class="logout-btn" type="submit" name="logout"><i class="fas fa-sign-out-alt"></i> Logout (<?php echo htmlspecialchars($current_username); ?>)</button>

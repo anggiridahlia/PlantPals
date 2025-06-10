@@ -5,7 +5,6 @@
     flex: 1;
     padding: 40px;
     width: 100%;
-    max-width: 1300px;
     margin: 40px auto; /* Centered with vertical margins */
     box-shadow: 0 10px 30px rgba(0,0,0,0.05); /* Subtle shadow for the whole content area */
     border-radius: 18px;
@@ -49,6 +48,9 @@
     font-weight: 600;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 4px 10px rgba(76, 175, 80, 0.2);
+    display: inline-flex; /* Untuk ikon */
+    align-items: center;
+    gap: 8px;
 }
 
 .add-new-btn:hover {
@@ -78,6 +80,11 @@
     color: #3a5a20;
     font-size: 1.05rem;
 }
+.form-group label i {
+    margin-right: 8px;
+    color: #E5989B; /* Warna ikon form */
+}
+
 
 .form-group input[type="text"],
 .form-group input[type="email"],
@@ -136,7 +143,9 @@
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    display: inline-block;
+    display: inline-flex; /* Untuk ikon */
+    align-items: center;
+    gap: 8px;
     margin-left: 15px;
 }
 
@@ -180,6 +189,7 @@
     padding: 18px 20px; /* More padding for cells */
     text-align: left;
     font-size: 1rem;
+    vertical-align: middle; /* Agar konten tabel sejajar di tengah */
 }
 
 .data-table th {
@@ -221,6 +231,9 @@
     text-decoration: none;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: inline-flex; /* Untuk ikon */
+    align-items: center;
+    gap: 5px;
 }
 
 .data-table .edit-btn {
@@ -258,6 +271,13 @@
     text-align: center;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.08); /* Inherits card-panel styles */
+    /* Tambahan: Efek hover untuk stat card */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px); /* Efek melayang saat hover */
+    box-shadow: 0 15px 30px rgba(0,0,0,0.12); /* Bayangan lebih kuat */
 }
 
 .stat-card h3 {
@@ -265,15 +285,143 @@
     color: #E5989B; /* Accent pink for stat numbers */
     margin-bottom: 15px;
     font-weight: 700;
+    display: flex; /* Untuk ikon sejajar */
+    align-items: center;
+    justify-content: center; /* Pusatkan teks dan ikon */
+    gap: 10px; /* Jarak antara teks dan ikon */
 }
+/* Tambahan: gaya ikon pada stat card h3 */
+.stat-card h3 i {
+    font-size: 1.1em; /* Ukuran ikon lebih besar dari teks h3 */
+    margin-left: 0; /* Hapus margin left karena sudah ada gap */
+    color: #3a5a20; /* Warna ikon hijau tua */
+    /* Tambahan: Animasi ikon */
+    transition: transform 0.3s ease;
+}
+.stat-card:hover h3 i {
+    transform: rotate(5deg) scale(1.1); /* Efek putar dan membesar saat hover pada card */
+}
+
 
 .stat-card p {
     font-size: 1.1rem;
     color: #555;
     font-weight: 500;
 }
+/* Tambahan: gaya angka statistik yang lebih menonjol */
+.stat-card p.stat-value {
+    font-size: 2.5rem; /* Ukuran angka lebih besar */
+    font-weight: 800; /* Lebih tebal */
+    color: #3a5a20; /* Warna hijau tua untuk angka */
+    margin-top: 10px;
+}
 
-/* Responsive Adjustments (for Admin/Seller dashboards) */
+
+/* --- Order Card (Specific for Seller Orders Page) --- */
+.order-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.order-card h3 {
+    font-size: 1.8rem;
+    color: #386641;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+/* Tambahan: gaya ikon pada order card p strong */
+.order-card p strong i {
+    margin-right: 8px;
+    color: #E5989B; /* Warna ikon pink */
+}
+
+.order-card p {
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: #555;
+}
+
+.order-card p strong {
+    color: #3a5a20;
+    min-width: 120px; /* Untuk penataan label */
+    display: inline-block;
+}
+
+.order-card .status-badge {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    color: white;
+    font-size: 0.9em;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+/* Gaya status badge (contoh, sesuaikan warna dengan tema Anda) */
+.status-badge.pending { background-color: #ffc107; } /* Yellow */
+.status-badge.processing { background-color: #17a2b8; } /* Info Blue */
+.status-badge.shipped { background-color: #007bff; } /* Blue */
+.status-badge.completed { background-color: #28a745; } /* Green */
+.status-badge.cancelled { background-color: #dc3545; } /* Red */
+
+.order-card .order-status-form {
+    display: inline-flex; /* Untuk menempatkan select dan button berdampingan */
+    align-items: center;
+    gap: 10px;
+    margin-left: 20px;
+    vertical-align: middle; /* Sejajarkan form dengan status badge */
+}
+
+.order-card .order-status-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: #fcfcfc;
+    cursor: pointer;
+}
+
+.order-card .update-btn {
+    background-color: #E5989B;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: inline-flex; /* Untuk ikon */
+    align-items: center;
+    gap: 5px;
+}
+
+.order-card .update-btn:hover {
+    background-color: rgb(182, 88, 117);
+}
+
+.order-card h4 {
+    font-size: 1.2rem;
+    color: #3a5a20;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.order-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.order-card ul li {
+    padding: 5px 0;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* --- Responsive Adjustments (for Admin/Seller dashboards) --- */
 @media (max-width: 1200px) {
     .main-content { padding: 30px; }
     h1 { font-size: 2.5rem; margin-bottom: 30px; }
@@ -285,6 +433,8 @@
     .data-table th, .data-table td { padding: 15px 18px; font-size: 0.9rem; }
     .stats-grid { gap: 25px; }
     .stat-card h3 { font-size: 1.8rem; }
+    .order-card { padding: 25px; margin-bottom: 25px; }
+    .order-card h3 { font-size: 1.6rem; }
 }
 
 @media (max-width: 992px) { /* Tablet / Medium screens */
@@ -331,6 +481,11 @@
     .data-table .action-buttons a, .data-table .action-buttons button { width: 100%; text-align: center; }
     .stats-grid { grid-template-columns: 1fr; gap: 20px; }
     .stat-card h3 { font-size: 1.6rem; }
+    .stat-card p.stat-value { font-size: 2rem; } /* Sesuaikan ukuran angka */
+    .order-card { padding: 20px; margin-bottom: 20px; }
+    .order-card h3 { font-size: 1.4rem; }
+    .order-card .order-status-form { flex-direction: column; align-items: flex-start; gap: 5px; margin-left: 0; margin-top: 10px; }
+    .order-card .order-status-select, .order-card .update-btn { width: 100%; }
 }
 
 @media (max-width: 576px) { /* Small mobile devices */
@@ -347,5 +502,9 @@
     .data-table th, .data-table td { padding: 10px; font-size: 0.8rem; }
     .stat-card { padding: 20px; }
     .stat-card h3 { font-size: 1.4rem; }
-    .stat-card p { font-size: 1rem; }
+    .stat-card p.stat-value { font-size: 2.2rem; } /* Sesuaikan ukuran angka lebih kecil lagi */
+    .order-card { padding: 15px; margin-bottom: 15px; }
+    .order-card h3 { font-size: 1.2rem; }
+    .order-card p { font-size: 0.9rem; }
+    .order-card p strong { min-width: 80px; } /* Sesuaikan lebar label di mobile */
 }

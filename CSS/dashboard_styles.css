@@ -215,7 +215,6 @@ header nav {
     background-color: #2f4d3a;
 }
 .card-buttons-container .buy-button { /* Gaya untuk tombol 'Add' / 'Tambah ke Keranjang' */
-    /* Menggunakan warna pinkish dari tema */
     background-color: #E5989B;
     color: white;
 }
@@ -279,40 +278,112 @@ header nav {
 }
 
 
-/* Profile Page Specifics */
+/* Profile Page Specifics (Revisi untuk tampilan & edit) */
+/* Gaya display profil */
 .profile-info {
     text-align: left;
-    max-width: 500px;
+    max-width: 600px; /* Lebar maksimal diperlebar */
     margin: 0 auto;
-    padding: 20px;
+    padding: 30px; /* Padding diperbesar */
     border: 1px solid #eee;
-    border-radius: 8px;
+    border-radius: 12px; /* Border radius diperbesar */
     background-color: #f9f9f9;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05); /* Bayangan lebih halus */
 }
 .profile-info p {
-    margin-bottom: 10px;
+    margin-bottom: 12px; /* Jarak antar paragraf diperbesar */
     font-size: 1.1em;
     color: #333;
+    display: flex; /* Untuk ikon sejajar */
+    align-items: center;
+    gap: 10px; /* Jarak antara ikon dan teks */
 }
-.profile-info strong {
+.profile-info p strong {
     color: #3a5a20;
+    min-width: 140px; /* Perlebar min-width label */
+}
+.profile-info p i {
+    color: #E5989B; /* Warna ikon */
+    font-size: 1.2em;
 }
 .profile-info-btn {
     background-color: #E5989B;
     color: white;
-    padding: 10px 20px;
+    padding: 12px 25px; /* Padding diperbesar */
     border: none;
-    border-radius: 5px;
+    border-radius: 8px; /* Border radius diperbesar */
     cursor: pointer;
-    margin-top: 15px;
+    margin-top: 20px; /* Jarak atas diperbesar */
     transition: background-color 0.3s ease;
     display: inline-flex; /* For icon alignment */
     align-items: center;
-    gap: 5px;
+    gap: 8px;
 }
 .profile-info-btn:hover {
     background-color: rgb(182, 88, 117);
 }
+
+/* Gaya untuk form edit profil */
+.profile-edit-form-container {
+    max-width: 600px; /* Sama dengan profile-info */
+    margin: 0 auto;
+    /* Card panel styles apply, so padding, border-radius, box-shadow are inherited */
+}
+.profile-edit-form-container h3 {
+    font-size: 1.8rem;
+    color: #3a5a20;
+    margin-bottom: 25px;
+    text-align: center; /* Pusatkan judul */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.profile-edit-form-container h3::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    background: #E5989B;
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+/* Menargetkan form-group di dalam container edit profil */
+.profile-edit-form-container .form-group {
+    margin-bottom: 20px !important; /* Paksa margin lebih kecil dari default form-group */
+}
+.profile-edit-form-container .form-group label { /* Target label lebih spesifik */
+    display: flex !important; /* Paksa display flex */
+    align-items: center !important; /* Paksa align items center */
+    gap: 8px !important; /* Paksa gap */
+    font-weight: 600 !important;
+    color: #3a5a20 !important;
+    margin-bottom: 8px !important;
+}
+.profile-edit-form-container .form-group label i {
+    color: #E5989B !important; /* Paksa ikon form label warna pink */
+}
+.profile-edit-form-container .form-group input,
+.profile-edit-form-container .form-group textarea {
+    width: 100% !important; /* Paksa lebar 100% */
+    padding: 12px !important; /* Paksa padding */
+    border: 1px solid #ddd !important; /* Paksa border */
+    border-radius: 8px !important; /* Paksa border-radius */
+    font-size: 1rem !important; /* Paksa font-size */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05) !important; /* Paksa shadow */
+}
+.profile-edit-form-container .form-action-btns {
+    border-top: 1px solid #eee !important; /* Paksa border top */
+    margin-top: 30px !important; /* Paksa margin top standar */
+    padding-top: 20px !important; /* Paksa padding top standar */
+    display: flex !important; /* Paksa display flex */
+    justify-content: flex-end !important; /* Paksa justify content */
+    gap: 15px !important; /* Paksa jarak antar tombol */
+}
+/* Pastikan tombol submit/cancel menggunakan gaya global dari main_styles.css */
+/* submit-btn dan cancel-btn sudah didefinisikan di main_styles.css dan form-action-btns */
+
 
 /* Orders Page Specifics */
 .order-list {
@@ -341,6 +412,8 @@ header nav {
     margin-bottom: 10px;
     font-size: 1.05em;
     color: #333;
+    flex-wrap: wrap; /* Izinkan wrap jika terlalu banyak span */
+    gap: 5px 10px; /* Jarak antar span */
 }
 .order-list li .order-header span,
 .order-list li .order-summary-footer span {
@@ -349,6 +422,12 @@ header nav {
 }
 .order-list li .order-summary-footer span:last-child {
     text-align: right; /* Align status to the right */
+    /* Tambahan untuk wrap tombol cancel */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .order-list li strong {
@@ -613,6 +692,58 @@ header nav {
         height: 160px;
     }
 
+    /* Profile Page Specifics (Revisi untuk tampilan & edit) - MOBILE */
+    .profile-info {
+        padding: 20px !important; /* Paksa padding lebih kecil di mobile */
+        width: calc(100% - 30px) !important; /* Paksa lebar penuh dengan margin */
+        margin-left: 15px !important;
+        margin-right: 15px !important;
+    }
+    .profile-info p {
+        flex-direction: column !important; /* Paksa teks dan ikon bertumpuk */
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+    .profile-info p strong {
+        min-width: unset !important; /* Hapus min-width di mobile */
+        width: 100% !important;
+    }
+    .profile-info-btn {
+        width: 100% !important; /* Paksa tombol mengambil lebar penuh di mobile */
+    }
+    .profile-edit-form-container {
+        width: calc(100% - 30px) !important; /* Paksa lebar penuh dengan margin */
+        margin-left: 15px !important;
+        margin-right: 15px !important;
+        padding: 20px !important; /* Paksa padding lebih kecil di mobile */
+    }
+    .profile-edit-form-container h3 {
+        font-size: 1.5rem !important;
+    }
+    .profile-edit-form-container .form-group {
+        margin-bottom: 15px !important; /* Paksa margin lebih kecil di mobile */
+    }
+    .profile-edit-form-container .form-group label {
+        font-size: 0.95rem !important;
+        flex-direction: column !important; /* Paksa label dan ikon bertumpuk di mobile */
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+    .profile-edit-form-container .form-group input,
+    .profile-edit-form-container .form-group textarea {
+        padding: 10px !important;
+        font-size: 0.9rem !important;
+    }
+    .profile-edit-form-container .form-action-btns {
+        flex-direction: column !important; /* Paksa tombol form edit bertumpuk di mobile */
+        gap: 10px !important;
+    }
+    .profile-edit-form-container .form-action-btns button,
+    .profile-edit-form-container .form-action-btns a.btn-link {
+        width: 100% !important; /* Paksa tombol mengambil lebar penuh di mobile */
+    }
+
+
     .order-list li {
         flex-direction: column;
         align-items: flex-start;
@@ -656,6 +787,9 @@ header nav {
     }
 
     /* Gaya baru untuk Produk Unggulan di Mobile */
+    .featured-products-section {
+        margin-bottom: 30px; /* Sesuaikan margin */
+    }
     .featured-products-section .section-heading {
         font-size: 1.8rem;
         margin-bottom: 20px;

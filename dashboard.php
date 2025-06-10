@@ -21,6 +21,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 include 'data.php'; // For initial product fallback data
 require_once 'config.php'; // Database connection, now opened once.
 
+// Variabel untuk pesan pop-up
+$popup_message = "";
+$popup_status = ""; // 'success' or 'error'
+
 // --- Handle Add to Cart Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     $product_id = $_POST['product_id'] ?? null;
@@ -53,33 +57,48 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
                 }
 
                 // Add or update item in cart
-                if (isset($_SESSION['cart'][$product_id])) {
-                    // Update quantity if item already in cart
-                    $_SESSION['cart'][$product_id]['quantity'] += $quantity;
-                } else {
-                    // Add new item to cart
-                    $_SESSION['cart'][$product_id] = [
-                        'id' => $product_details['id'],
-                        'name' => $product_details['name'],
-                        'img' => $product_details['img'],
-                        'price' => $product_details['price'],
-                        'stock' => $product_details['stock'],
-                        'seller_id' => $product_details['seller_id'],
-                        'store_id_string' => $store_id_for_cart,
-                        'store_name' => $store_name_for_cart,
-                        'quantity' => $quantity,
-                    ];
+                if (!isset($_SESSION['cart'])) {
+                    $_SESSION['cart'] = [];
                 }
-                echo "<script>alert('Produk berhasil ditambahkan ke keranjang!'); window.location.href='dashboard.php?page=cart';</script>";
-                exit();
+                if (isset($_SESSION['cart'][$product_id])) {
+                    // Cek stok sebelum menambah kuantitas
+                    if ($_SESSION['cart'][$product_id]['quantity'] + $quantity > $product_details['stock']) {
+                        $popup_message = "Tidak dapat menambahkan. Stok untuk " . htmlspecialchars($product_details['name']) . " tidak mencukupi. Tersedia: " . htmlspecialchars($product_details['stock']) . ".";
+                        $popup_status = "error";
+                    } else {
+                        $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+                        $popup_message = "Produk '" . htmlspecialchars($product_details['name']) . "' berhasil ditambahkan ke keranjang!";
+                        $popup_status = "success";
+                    }
+                } else {
+                    // Cek stok untuk item baru
+                    if ($quantity > $product_details['stock']) {
+                         $popup_message = "Tidak dapat menambahkan. Stok untuk " . htmlspecialchars($product_details['name']) . " tidak mencukupi. Tersedia: " . htmlspecialchars($product_details['stock']) . ".";
+                         $popup_status = "error";
+                    } else {
+                        $_SESSION['cart'][$product_id] = [
+                            'id' => $product_details['id'],
+                            'name' => $product_details['name'],
+                            'img' => $product_details['img'],
+                            'price' => $product_details['price'],
+                            'stock' => $product_details['stock'], // Simpan stok saat ini untuk validasi di keranjang
+                            'seller_id' => $product_details['seller_id'],
+                            'store_id_string' => $store_id_for_cart,
+                            'store_name' => $store_name_for_cart,
+                            'quantity' => $quantity,
+                        ];
+                        $popup_message = "Produk '" . htmlspecialchars($product_details['name']) . "' berhasil ditambahkan ke keranjang!";
+                        $popup_status = "success";
+                    }
+                }
             } else {
-                echo "<script>alert('Produk tidak ditemukan atau tidak tersedia.'); window.location.href='dashboard.php?page=home';</script>";
-                exit();
+                $popup_message = "Produk tidak ditemukan atau tidak tersedia.";
+                $popup_status = "error";
             }
         } else {
             error_log("Error preparing product fetch for cart: " . mysqli_error($conn));
-            echo "<script>alert('Terjadi kesalahan sistem. Mohon coba lagi.'); window.location.href='dashboard.php?page=home';</script>";
-            exit();
+            $popup_message = "Terjadi kesalahan sistem. Mohon coba lagi.";
+            $popup_status = "error";
         }
     }
 }
@@ -90,29 +109,37 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
     $new_quantity = intval($_POST['quantity'] ?? 0);
 
     if ($product_id && isset($_SESSION['cart'][$product_id])) {
-        if ($new_quantity > 0) {
-            // Re-fetch current stock from DB for absolute accuracy
-            $current_db_stock = 0;
-            $stmt_stock = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
-            if ($stmt_stock) {
-                mysqli_stmt_bind_param($stmt_stock, "i", $product_id);
-                mysqli_stmt_execute($stmt_stock);
-                mysqli_stmt_bind_result($stmt_stock, $current_db_stock);
-                mysqli_stmt_fetch($stmt_stock);
-                mysqli_stmt_close($stmt_stock);
-            }
+        // Re-fetch current stock from DB for absolute accuracy
+        $current_db_stock = 0;
+        $stmt_stock = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
+        if ($stmt_stock) {
+            mysqli_stmt_bind_param($stmt_stock, "i", $product_id);
+            mysqli_stmt_execute($stmt_stock);
+            mysqli_stmt_bind_result($stmt_stock, $current_db_stock);
+            mysqli_stmt_fetch($stmt_stock);
+            mysqli_stmt_close($stmt_stock);
+        }
 
+        if ($new_quantity > 0) {
             if ($new_quantity <= $current_db_stock) {
                 $_SESSION['cart'][$product_id]['quantity'] = $new_quantity;
-                echo "<script>alert('Kuantitas diperbarui.'); window.location.href='dashboard.php?page=cart';</script>";
+                $popup_message = "Kuantitas diperbarui.";
+                $popup_status = "success";
             } else {
-                echo "<script>alert('Stok tidak mencukupi untuk kuantitas yang diminta. Stok tersedia: " . $current_db_stock . ".'); window.location.href='dashboard.php?page=cart';</script>";
+                $popup_message = "Stok tidak mencukupi untuk kuantitas yang diminta. Stok tersedia: " . $current_db_stock . ".";
+                $popup_status = "error";
             }
         } else {
             unset($_SESSION['cart'][$product_id]); // Remove if quantity is 0 or less
-            echo "<script>alert('Produk dihapus dari keranjang.'); window.location.href='dashboard.php?page=cart';</script>";
+            $popup_message = "Produk dihapus dari keranjang.";
+            $popup_status = "success"; // Atau 'info' jika ada status pop-up info
         }
+    } else {
+        $popup_message = "Gagal memperbarui keranjang.";
+        $popup_status = "error";
     }
+    // Redirect to prevent form resubmission on refresh
+    header('Location: dashboard.php?page=cart');
     exit();
 }
 
@@ -121,9 +148,194 @@ if (isset($_POST['action']) && $_POST['action'] === 'remove_from_cart') {
     $product_id = $_POST['product_id'] ?? null;
     if ($product_id && isset($_SESSION['cart'][$product_id])) {
         unset($_SESSION['cart'][$product_id]);
-        echo "<script>alert('Produk dihapus dari keranjang.'); window.location.href='dashboard.php?page=cart';</script>";
-        exit();
+        $popup_message = "Produk dihapus dari keranjang.";
+        $popup_status = "success"; // Atau 'info'
+    } else {
+        $popup_message = "Gagal menghapus produk dari keranjang.";
+        $popup_status = "error";
     }
+    // Redirect to prevent form resubmission on refresh
+    header('Location: dashboard.php?page=cart');
+    exit();
+}
+
+// --- Handle Cancel Order Action ---
+if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
+    $order_id_to_cancel = $_POST['order_id'] ?? null;
+    $user_id_from_session = $_SESSION['id'];
+
+    if ($order_id_to_cancel) {
+        // Fetch order details to check status and order_date
+        $order_to_check = [];
+        $sql_check_order = "SELECT order_status, order_date FROM orders WHERE id = ? AND user_id = ?";
+        if ($stmt_check = mysqli_prepare($conn, $sql_check_order)) {
+            mysqli_stmt_bind_param($stmt_check, "ii", $order_id_to_cancel, $user_id_from_session);
+            mysqli_stmt_execute($stmt_check);
+            $result_check = mysqli_stmt_get_result($stmt_check);
+            $order_to_check = mysqli_fetch_assoc($result_check);
+            mysqli_stmt_close($stmt_check);
+        }
+
+        if ($order_to_check) {
+            $order_timestamp = strtotime($order_to_check['order_date']);
+            $current_timestamp = time();
+            $one_hour_limit = 60 * 60; // 1 jam dalam detik
+
+            if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+                ($order_to_check['order_status'] == 'pending' || $order_to_check['order_status'] == 'processing')) {
+                
+                // Start transaction for cancellation
+                mysqli_autocommit($conn, FALSE);
+                $cancel_success = true;
+
+                // 1. Update order status to 'cancelled'
+                $sql_update_status = "UPDATE orders SET order_status = 'cancelled' WHERE id = ? AND user_id = ?";
+                if ($stmt_update = mysqli_prepare($conn, $sql_update_status)) {
+                    mysqli_stmt_bind_param($stmt_update, "ii", $order_id_to_cancel, $user_id_from_session);
+                    if (!mysqli_stmt_execute($stmt_update)) {
+                        $cancel_success = false;
+                        error_log("Error updating order status to cancelled: " . mysqli_stmt_error($stmt_update));
+                    }
+                    mysqli_stmt_close($stmt_update);
+                } else {
+                    $cancel_success = false;
+                    error_log("Error preparing cancel order status update: " . mysqli_error($conn));
+                }
+
+                // 2. Return product stock to original (sum quantities from order_items)
+                if ($cancel_success) {
+                    $sql_get_items = "SELECT product_id, quantity FROM order_items WHERE order_id = ?";
+                    if ($stmt_get_items = mysqli_prepare($conn, $sql_get_items)) {
+                        mysqli_stmt_bind_param($stmt_get_items, "i", $order_id_to_cancel);
+                        mysqli_stmt_execute($stmt_get_items);
+                        $result_items = mysqli_stmt_get_result($stmt_get_items);
+                        
+                        while ($item_row = mysqli_fetch_assoc($result_items)) {
+                            $product_id_returned = $item_row['product_id'];
+                            $quantity_returned = $item_row['quantity'];
+
+                            // Get current stock
+                            $current_stock = 0;
+                            $stmt_current_stock = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
+                            if ($stmt_current_stock) {
+                                mysqli_stmt_bind_param($stmt_current_stock, "i", $product_id_returned);
+                                mysqli_stmt_execute($stmt_current_stock);
+                                mysqli_stmt_bind_result($stmt_current_stock, $current_stock);
+                                mysqli_stmt_fetch($stmt_current_stock);
+                                mysqli_stmt_close($stmt_current_stock);
+                            }
+
+                            $new_stock_value = $current_stock + $quantity_returned;
+                            $sql_return_stock = "UPDATE products SET stock = ? WHERE id = ?";
+                            if ($stmt_return_stock = mysqli_prepare($conn, $sql_return_stock)) {
+                                mysqli_stmt_bind_param($stmt_return_stock, "ii", $new_stock_value, $product_id_returned);
+                                if (!mysqli_stmt_execute($stmt_return_stock)) {
+                                    $cancel_success = false;
+                                    error_log("Error returning stock for product " . $product_id_returned . ": " . mysqli_stmt_error($stmt_return_stock));
+                                    break;
+                                }
+                                mysqli_stmt_close($stmt_return_stock);
+                            } else {
+                                $cancel_success = false;
+                                error_log("Error preparing return stock statement: " . mysqli_error($conn));
+                                break;
+                            }
+                        }
+                        mysqli_stmt_close($stmt_get_items);
+                    } else {
+                        $cancel_success = false;
+                        error_log("Error preparing get order items for cancellation: " . mysqli_error($conn));
+                    }
+                }
+
+                if ($cancel_success) {
+                    mysqli_commit($conn);
+                    $popup_message = "Pesanan #" . $order_id_to_cancel . " berhasil dibatalkan!";
+                    $popup_status = "success";
+                } else {
+                    mysqli_rollback($conn);
+                    $popup_message = "Gagal membatalkan pesanan #" . $order_id_to_cancel . ". Mohon coba lagi.";
+                    $popup_status = "error";
+                }
+                mysqli_autocommit($conn, TRUE); // Re-enable autocommit
+
+            } else {
+                $popup_message = "Pesanan #" . $order_id_to_cancel . " tidak dapat dibatalkan. Mungkin sudah melewati batas waktu (1 jam) atau status tidak memungkinkan.";
+                $popup_status = "error";
+            }
+        } else {
+            $popup_message = "Pesanan tidak ditemukan atau Anda tidak memiliki izin untuk membatalkannya.";
+            $popup_status = "error";
+        }
+    } else {
+        $popup_message = "ID pesanan tidak valid untuk pembatalan.";
+        $popup_status = "error";
+    }
+    // Redirect to prevent form resubmission on refresh
+    header('Location: dashboard.php?page=orders');
+    exit();
+}
+
+// --- Handle Update Profile Action ---
+if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+    $user_id_to_update = $_SESSION['id'];
+    $full_name_form = trim($_POST['full_name'] ?? '');
+    $email_form = trim($_POST['email'] ?? '');
+    $phone_number_form = trim($_POST['phone_number'] ?? '');
+    $address_form = trim($_POST['address'] ?? '');
+
+    $update_success = true;
+    $update_errors = [];
+
+    // Basic validation
+    if (empty($full_name_form)) { $update_errors[] = "Nama Lengkap tidak boleh kosong."; }
+    if (empty($email_form) || !filter_var($email_form, FILTER_VALIDATE_EMAIL)) { $update_errors[] = "Format Email tidak valid."; }
+    // Phone and address can be empty
+
+    // Check if email already exists for another user
+    if (empty($update_errors)) {
+        $sql_check_email = "SELECT id FROM users WHERE email = ? AND id != ?";
+        if ($stmt_check_email = mysqli_prepare($conn, $sql_check_email)) {
+            mysqli_stmt_bind_param($stmt_check_email, "si", $email_form, $user_id_to_update);
+            mysqli_stmt_execute($stmt_check_email);
+            mysqli_stmt_store_result($stmt_check_email);
+            if (mysqli_stmt_num_rows($stmt_check_email) > 0) {
+                $update_errors[] = "Email ini sudah digunakan oleh akun lain.";
+            }
+            mysqli_stmt_close($stmt_check_email);
+        } else {
+            $update_errors[] = "Kesalahan sistem saat memverifikasi email.";
+        }
+    }
+
+    if (!empty($update_errors)) {
+        $popup_message = "Gagal memperbarui profil:\\n" . implode("\\n", $update_errors);
+        $popup_status = "error";
+        error_log("Profile update errors: " . $popup_message);
+    } else {
+        $sql_update_profile = "UPDATE users SET full_name = ?, email = ?, phone_number = ?, address = ? WHERE id = ?";
+        if ($stmt_update_profile = mysqli_prepare($conn, $sql_update_profile)) {
+            mysqli_stmt_bind_param($stmt_update_profile, "ssssi", $full_name_form, $email_form, $phone_number_form, $address_form, $user_id_to_update);
+            if (mysqli_stmt_execute($stmt_update_profile)) {
+                $popup_message = "Profil Anda berhasil diperbarui!";
+                $popup_status = "success";
+                // Update session username (if using full_name as display username)
+                $_SESSION['username'] = $full_name_form; 
+            } else {
+                $popup_message = "Gagal memperbarui profil ke database. " . mysqli_stmt_error($stmt_update_profile);
+                $popup_status = "error";
+                error_log("Error updating profile in DB: " . mysqli_stmt_error($stmt_update_profile));
+            }
+            mysqli_stmt_close($stmt_update_profile);
+        } else {
+            $popup_message = "Kesalahan sistem saat menyiapkan pembaruan profil.";
+            $popup_status = "error";
+            error_log("Error preparing profile update statement: " . mysqli_error($conn));
+        }
+    }
+    // Redirect untuk menghindari form resubmission dan merefresh data tampilan profil
+    header('Location: dashboard.php?page=profile');
+    exit();
 }
 
 
@@ -178,7 +390,6 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
 
 // --- Fetch Featured Products (e.g., top 4 random products or specific picks) ---
 $featured_products = [];
-// Asumsi 'products' memiliki kolom 'is_featured' atau Anda mengambil acak
 $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
@@ -204,7 +415,7 @@ if ($result_featured) {
     <link rel="stylesheet" href="/PlantPals/css/dashboard_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Gaya khusus untuk keranjang belanja */
+        /* Gaya khusus untuk keranjang belanja (akan dipindahkan ke CSS eksternal nanti) */
         .cart-item {
             display: flex;
             align-items: center;
@@ -319,9 +530,18 @@ if ($result_featured) {
         }
         .card-buttons-container .see-more-btn {
             background-color: #3a5a20; /* Warna hijau untuk lihat detail */
+            color: white; /* Pastikan teks putih */
         }
         .card-buttons-container .see-more-btn:hover {
             background-color: #2f4d3a;
+        }
+        .card-buttons-container .buy-button { /* Gaya untuk tombol 'Add' / 'Tambah ke Keranjang' */
+            /* Menggunakan warna pinkish dari tema */
+            background-color: #E5989B;
+            color: white;
+        }
+        .card-buttons-container .buy-button:hover {
+            background-color: rgb(182, 88, 117);
         }
 
         /* Penyesuaian untuk product-item-page di halaman products.php */
@@ -369,7 +589,7 @@ if ($result_featured) {
             text-decoration: none;
             display: inline-block;
         }
-        .promo-banner .btn-promo:hover {
+        .btn-promo:hover {
             background-color: rgb(182, 88, 117);
         }
 
@@ -399,7 +619,6 @@ if ($result_featured) {
             gap: 25px;
         }
         .featured-item.card { /* Menggunakan kembali gaya .card */
-            /* Pastikan gaya card di sini sesuai dengan .grid .card */
             text-align: left; /* Rata kiri untuk featured item */
         }
         .featured-item.card .card-content {
@@ -407,6 +626,120 @@ if ($result_featured) {
         }
         .featured-item.card .card-buttons-container {
              padding-top: 15px; /* Tambahkan padding atas untuk memisahkan dari konten */
+        }
+
+        /* Gaya Pop-up Notifikasi */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Latar belakang buram */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Pastikan di atas elemen lain */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .popup-box {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .popup-overlay.active .popup-box {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .popup-box .icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+        }
+        .popup-box .icon.success {
+            color: #28a745; /* Hijau */
+        }
+        .popup-box .icon.error {
+            color: #dc3545; /* Merah */
+        }
+        .popup-box h3 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .popup-box p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .popup-box .close-btn {
+            background-color: #E5989B;
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .popup-box .close-btn:hover {
+            background-color: rgb(182, 88, 117);
+        }
+
+        /* Responsive untuk pop-up */
+        @media (max-width: 480px) {
+            .popup-box {
+                padding: 20px;
+            }
+            .popup-box .icon {
+                font-size: 3rem;
+            }
+            .popup-box h3 {
+                font-size: 1.5rem;
+            }
+            .popup-box p {
+                font-size: 1rem;
+            }
+        }
+
+        /* Gaya untuk tombol Batalkan Pesanan */
+        .cancel-order-btn {
+            background-color: #dc3545; /* Merah */
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 10px; /* Jarak dari status badge */
+        }
+        .cancel-order-btn:hover {
+            background-color: #c82333;
+        }
+        .order-summary-footer .status-badge {
+            margin-right: 0; /* Hapus margin kanan jika ada agar tombol cancel bisa mendekat */
+        }
+        @media (max-width: 768px) {
+            .order-summary-footer .status-badge + .cancel-order-btn { /* Untuk mobile, agar tombol di baris baru */
+                margin-left: 0;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
@@ -425,7 +758,7 @@ if ($result_featured) {
             <a href="dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang (<?php echo count($_SESSION['cart']); ?>)</a>
             <a href="dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
             <a href="dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
-            <a href="dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
+            <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
         </nav>
 
         <main class="content">
@@ -472,9 +805,10 @@ if ($result_featured) {
                 </div>
                 <?php endif; ?>
 
-                <h2 class="section-heading">Jelajahi Semua Produk</h2> <div id="flowerGrid" class="grid">
+                <h2 class="section-heading">Semua Produk</h2> <div id="flowerGrid" class="grid">
                 <?php
-                $filtered_flowers = [];
+                // Logika pencarian
+                $filtered_flowers_for_display = [];
                 $keyword = isset($_GET['q']) ? strtolower(trim($_GET['q'])) : '';
 
                 if (!empty($keyword)) {
@@ -485,17 +819,17 @@ if ($result_featured) {
                             stripos($flower['scientific_name'] ?? $flower['scientific'] ?? '', $keyword) !== false ||
                             stripos($flower['family'] ?? '', $keyword) !== false
                         ) {
-                            $filtered_flowers[] = $flower;
+                            $filtered_flowers_for_display[] = $flower;
                         }
                     }
                 } else {
-                    $filtered_flowers = $flowers_to_display;
+                    $filtered_flowers_for_display = $flowers_to_display; // Tampilkan semua jika tidak ada pencarian
                 }
 
-                if (empty($filtered_flowers)) {
+                if (empty($filtered_flowers_for_display)) {
                     echo "<p class='no-results'>Tidak ada hasil untuk pencarian Anda.</p>";
                 } else {
-                    foreach ($filtered_flowers as $flower) {
+                    foreach ($filtered_flowers_for_display as $flower) {
                         $card_id = htmlspecialchars($flower['id'] ?? 'fallback_' . uniqid());
                         ?>
                         <div class="card">
@@ -538,10 +872,13 @@ if ($result_featured) {
                             $store_name_full_for_order = "";
 
                             if ($selling_store) {
-                                $store_link = "store_profile.php?store_id_string=" . urlencode($selling_store['store_id_string']);
+                                // Pastikan store_id_string ada
+                                $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string'] ?? '');
+                                if (!empty($store_id_string_for_order)) {
+                                    $store_link = "store_profile.php?store_id_string=" . urlencode($store_id_string_for_order);
+                                }
                                 $store_name_display = htmlspecialchars($selling_store['name']);
-                                $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string']);
-                                $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . $selling_store['address'] . ")");
+                                $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . ($selling_store['address'] ?? 'Alamat Tidak Diketahui') . ")");
                             }
                         ?>
                         <div class="product-item-page">
@@ -551,10 +888,10 @@ if ($result_featured) {
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
                                 <div class="store-info-display">
                                     <span class="label"><i class="fas fa-store"></i> Dijual oleh:</span>
-                                    <?php if ($selling_store): ?>
+                                    <?php if ($selling_store && !empty($store_link) && $store_link !== "#"): ?>
                                         <a href="<?php echo $store_link; ?>" class="store-name-link">
                                             <?php echo $store_name_display; ?>
-                                            <?php if ($selling_store['address']) echo " - (" . htmlspecialchars($selling_store['address']) . ")"; ?>
+                                            <?php if (isset($selling_store['address']) && !empty($selling_store['address'])) echo " - (" . htmlspecialchars($selling_store['address']) . ")"; ?>
                                         </a>
                                     <?php else: ?>
                                         <span class="store-name-link"><?php echo $store_name_display; ?></span>
@@ -624,7 +961,7 @@ if ($result_featured) {
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][price]" value="<?php echo htmlspecialchars($item['price']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][quantity]" value="<?php echo htmlspecialchars($item['quantity']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_id_string]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
-                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name']); ?>">
+                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
                                 <?php endforeach; ?>
                                 <button type="submit" class="checkout-btn"><i class="fas fa-money-check-alt"></i> Lanjutkan ke Pembayaran</button>
                             </form>
@@ -635,7 +972,7 @@ if ($result_featured) {
             } elseif ($page == 'profile') {
                 // Koneksi sudah ada dari config.php di awal file
                 $user_data = [];
-                $sql_user = "SELECT * FROM users WHERE id = ?";
+                $sql_user = "SELECT id, username, email, full_name, phone_number, address, created_at, role FROM users WHERE id = ?";
                 if ($stmt_user = mysqli_prepare($conn, $sql_user)) {
                     mysqli_stmt_bind_param($stmt_user, "i", $_SESSION['id']);
                     mysqli_stmt_execute($stmt_user);
@@ -643,26 +980,62 @@ if ($result_featured) {
                     $user_data = mysqli_fetch_assoc($result_user);
                     mysqli_stmt_close($stmt_user);
                 }
+                // --- Display Profile or Edit Form ---
+                $is_editing_profile = (isset($_GET['action']) && $_GET['action'] == 'edit_profile');
                 ?>
                 <div class="page-content-panel">
                     <h2><i class="fas fa-user-circle"></i> Profil Pengguna</h2>
                     <p class="page-description">Kelola informasi akun Anda di sini.</p>
-                    <div class="profile-info">
-                        <p><strong>Username:</strong> <?php echo htmlspecialchars($user_data['username'] ?? $username); ?></p>
-                        <p><strong>Email:</strong> <?php echo htmlspecialchars($user_data['email'] ?? 'N/A'); ?></p>
-                        <p><strong>Nama Lengkap:</strong> <?php echo htmlspecialchars($user_data['full_name'] ?? 'N/A'); ?></p>
-                        <p><strong>Nomor Telepon:</strong> <?php echo htmlspecialchars($user_data['phone_number'] ?? 'N/A'); ?></p>
-                        <p><strong>Alamat:</strong> <?php echo htmlspecialchars($user_data['address'] ?? 'N/A'); ?></p>
-                        <p><strong>Bergabung Sejak:</strong> <?php echo htmlspecialchars(date('d F Y', strtotime($user_data['created_at'] ?? 'now'))); ?></p>
-                        <p><strong>Status Akun:</strong> Aktif (<?php echo htmlspecialchars($user_data['role'] ?? 'buyer'); ?>)</p>
-                        <button class="profile-info-btn"><i class="fas fa-edit"></i> Edit Profil</button>
-                    </div>
+                    
+                    <?php if (!$is_editing_profile): ?>
+                        <div class="profile-info">
+                            <p><strong><i class="fas fa-user"></i> Username:</strong> <?php echo htmlspecialchars($user_data['username'] ?? $username); ?></p>
+                            <p><strong><i class="fas fa-at"></i> Email:</strong> <?php echo htmlspecialchars($user_data['email'] ?? 'N/A'); ?></p>
+                            <p><strong><i class="fas fa-id-card"></i> Nama Lengkap:</strong> <?php echo htmlspecialchars($user_data['full_name'] ?? 'N/A'); ?></p>
+                            <p><strong><i class="fas fa-phone"></i> Nomor Telepon:</strong> <?php echo htmlspecialchars($user_data['phone_number'] ?? 'N/A'); ?></p>
+                            <p><strong><i class="fas fa-map-marker-alt"></i> Alamat:</strong> <?php echo htmlspecialchars($user_data['address'] ?? 'N/A'); ?></p>
+                            <p><strong><i class="fas fa-calendar-alt"></i> Bergabung Sejak:</strong> <?php echo htmlspecialchars(date('d F Y', strtotime($user_data['created_at'] ?? 'now'))); ?></p>
+                            <p><strong><i class="fas fa-user-tag"></i> Status Akun:</strong> Aktif (<?php echo htmlspecialchars($user_data['role'] ?? 'buyer'); ?>)</p>
+                            <a href="dashboard.php?page=profile&action=edit_profile" class="profile-info-btn"><i class="fas fa-edit"></i> Edit Profil</a>
+                        </div>
+                    <?php else: ?>
+                        <div class="profile-edit-form-container card-panel">
+                            <h3><i class="fas fa-user-edit"></i> Edit Profil Anda</h3>
+                            <form action="dashboard.php" method="post" class="profile-form">
+                                <input type="hidden" name="action" value="update_profile">
+                                <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($_SESSION['id']); ?>">
+                                
+                                <div class="form-group">
+                                    <label for="full_name" class="profile-form-label"><i class="fas fa-id-card"></i> Nama Lengkap:</label>
+                                    <input type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($user_data['full_name'] ?? ''); ?>" required class="profile-form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email" class="profile-form-label"><i class="fas fa-at"></i> Email:</label>
+                                    <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user_data['email'] ?? ''); ?>" required class="profile-form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone_number" class="profile-form-label"><i class="fas fa-phone"></i> Nomor Telepon:</label>
+                                    <input type="text" id="phone_number" name="phone_number" value="<?php echo htmlspecialchars($user_data['phone_number'] ?? ''); ?>" class="profile-form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label for="address" class="profile-form-label"><i class="fas fa-map-marker-alt"></i> Alamat:</label>
+                                    <textarea id="address" name="address" rows="3" class="profile-form-textarea"><?php echo htmlspecialchars($user_data['address'] ?? ''); ?></textarea>
+                                </div>
+
+                                <div class="form-action-btns profile-form-action-btns">
+                                    <a href="dashboard.php?page=profile" class="cancel-btn btn-link"><i class="fas fa-times-circle"></i> Batal</a>
+                                    <button type="submit" class="submit-btn"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php
             } elseif ($page == 'orders') {
                 // Koneksi sudah ada dari config.php di awal file
                 $user_orders = [];
-                $sql_orders = "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date DESC";
+                // UBAH: Tambahkan payment_method ke query
+                $sql_orders = "SELECT id, user_id, total_amount, order_status, payment_method, delivery_address, customer_name, customer_phone, customer_email, notes, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC";
                 if ($stmt_orders = mysqli_prepare($conn, $sql_orders)) {
                     mysqli_stmt_bind_param($stmt_orders, "i", $_SESSION['id']);
                     mysqli_stmt_execute($stmt_orders);
@@ -700,7 +1073,26 @@ if ($result_featured) {
                                     </div>
                                     <div class="order-summary-footer">
                                         <span><strong>Total:</strong> Rp <?php echo number_format($order['total_amount'], 0, ',', '.'); ?></span>
-                                        <span><strong>Status:</strong> <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span></span>
+                                        <span><strong>Metode Pembayaran:</strong> <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $order['payment_method'] ?? 'N/A'))); ?></span>
+                                        <span><strong>Status:</strong> <span class="status-badge <?php echo htmlspecialchars($order['order_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span>
+                                        
+                                        <?php
+                                        // Logika untuk menampilkan tombol batal
+                                        $order_timestamp = strtotime($order['order_date']);
+                                        $current_timestamp = time();
+                                        $one_hour_limit = 60 * 60; // 1 jam
+
+                                        if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+                                            ($order['order_status'] == 'pending' || $order['order_status'] == 'processing')):
+                                        ?>
+                                            <form action="dashboard.php" method="post" style="display:inline-block; margin-left: 10px;">
+                                                <input type="hidden" name="action" value="cancel_order">
+                                                <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
+                                                <button type="submit" class="cancel-order-btn" onclick="return confirm('Yakin ingin membatalkan pesanan ini? Aksi ini tidak dapat dibatalkan.');"><i class="fas fa-times-circle"></i> Batalkan</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        
+                                        </span>
                                     </div>
                                     <div class="order-items-detail">
                                         <strong>Item:</strong>
@@ -724,7 +1116,7 @@ if ($result_featured) {
                     <div class="contact-info">
                         <p><i class="fas fa-at"></i> <strong>Email:</strong> info@plantpals.com</p>
                         <p><i class="fas fa-phone-alt"></i> <strong>Telepon:</strong> +62 812-3456-7890</p>
-                        <p><i class="fas fa-map-marked-alt"></i> <strong>Alamat:</strong> Jl. Bunga Indah No. 123, Denpasar, Bali, Indonesia</p>
+                        <p><i class="fas fa-map-marker-alt"></i> <strong>Alamat:</strong> Jl. Bunga Indah No. 123, Denpasar, Bali, Indonesia</p>
                     </div>
                     <h3 class="section-sub-title">Form Kontak</h3>
                     <form class="contact-form">
@@ -759,26 +1151,56 @@ if ($result_featured) {
         <p>&copy; 2025 PlantPals. 💚 Semua hak cipta dilindungi.</p>
     </footer>
 
+    <div id="statusPopupOverlay" class="popup-overlay">
+        <div class="popup-box">
+            <span id="popupIcon" class="icon"></span>
+            <h3 id="popupTitle"></h3>
+            <p id="popupMessage"></p>
+            <button id="popupCloseBtn" class="close-btn">Tutup</button>
+        </div>
+    </div>
+
     <script>
-        // Fungsi handleOrder kini tidak lagi digunakan untuk tombol "Pesan Sekarang"
-        // karena diganti dengan "Tambah ke Keranjang"
-        // Fungsi ini bisa dihapus jika tidak ada lagi tombol yang langsung menuju order_form.php
-        /*
-        function handleOrder(productName, productPrice, storeIdString, storeNameFull) {
-            if (storeIdString === "" || storeNameFull === "") {
-                alert("Informasi toko tidak lengkap untuk produk ini.");
-                return;
+        // Fungsi untuk menampilkan pop-up
+        function showPopup(message, status) {
+            const overlay = document.getElementById('statusPopupOverlay');
+            const popupBox = overlay.querySelector('.popup-box');
+            const popupIcon = document.getElementById('popupIcon');
+            const popupTitle = document.getElementById('popupTitle');
+            const popupMessage = document.getElementById('popupMessage');
+            const popupCloseBtn = document.getElementById('popupCloseBtn');
+
+            popupMessage.textContent = message;
+            popupIcon.className = 'icon'; // Reset kelas ikon
+            if (status === 'success') {
+                popupIcon.classList.add('success', 'fas', 'fa-check-circle');
+                popupTitle.textContent = 'Berhasil!';
+            } else if (status === 'error') {
+                popupIcon.classList.add('error', 'fas', 'fa-times-circle');
+                popupTitle.textContent = 'Gagal!';
+            } else { // Default jika status tidak dikenali
+                popupIcon.classList.add('fas', 'fa-info-circle');
+                popupTitle.textContent = 'Informasi';
             }
 
-            const urlParams = [];
-            urlParams.push('product_name=' + encodeURIComponent(productName));
-            urlParams.push('product_price=' + encodeURIComponent(productPrice));
-            urlParams.push('store_id=' + encodeURIComponent(storeIdString));
-            urlParams.push('store_name=' + encodeURIComponent(storeNameFull));
+            overlay.classList.add('active');
 
-            window.location.href = `/PlantPals/order_form.php?${urlParams.join('&')}`;
+            popupCloseBtn.onclick = function() {
+                overlay.classList.remove('active');
+            };
+
+            // Opsional: Tutup otomatis setelah beberapa detik
+            // setTimeout(() => {
+            //     overlay.classList.remove('active');
+            // }, 3000);
         }
-        */
+
+        // Tangkap pesan pop-up dari PHP jika ada
+        <?php if (!empty($popup_message)): ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                showPopup("<?php echo $popup_message; ?>", "<?php echo $popup_status; ?>");
+            });
+        <?php endif; ?>
     </script>
 </body>
 </html>

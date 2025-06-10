@@ -129,6 +129,24 @@ mysqli_close($conn); // Tutup koneksi di sini setelah mengambil data profil
             margin-right: 8px;
             color: #E5989B;
         }
+
+        /* Gaya tambahan untuk metode pembayaran */
+        #paymentMethodInfo {
+            background-color: #e6f7e6;
+            border: 1px solid #c3d9c3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+            font-size: 0.95em;
+            color: #3a5a20;
+        }
+        #paymentMethodInfo p {
+            margin-bottom: 5px;
+        }
+        #paymentMethodInfo strong {
+            color: #E5989B;
+        }
     </style>
 </head>
 <body>
@@ -167,7 +185,7 @@ mysqli_close($conn); // Tutup koneksi di sini setelah mengambil data profil
                     <input type="hidden" name="checkout_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name']); ?>">
                 <?php endforeach; ?>
                 <input type="hidden" name="total_checkout_amount" value="<?php echo htmlspecialchars($total_checkout_amount); ?>">
-
+                <input type="hidden" name="action" value="checkout_cart">
 
                 <div class="form-group">
                     <label for="full_name"><i class="fas fa-user"></i> Nama Lengkap:</label>
@@ -194,6 +212,18 @@ mysqli_close($conn); // Tutup koneksi di sini setelah mengambil data profil
                     <textarea id="notes" name="notes" rows="3"></textarea>
                 </div>
 
+                <div class="form-group">
+                    <label for="payment_method"><i class="fas fa-money-check-alt"></i> Metode Pembayaran:</label>
+                    <select id="payment_method" name="payment_method" required onchange="showPaymentMethodInfo()">
+                        <option value="">Pilih Metode Pembayaran</option>
+                        <option value="bank_transfer">Transfer Bank</option>
+                        <option value="cod">Cash on Delivery (COD)</option>
+                    </select>
+                </div>
+
+                <div id="paymentMethodInfo" style="display: none;">
+                    </div>
+
                 <button type="submit" class="submit-btn"><i class="fas fa-cash-register"></i> Konfirmasi Pembayaran</button>
             </form>
         </div>
@@ -203,5 +233,40 @@ mysqli_close($conn); // Tutup koneksi di sini setelah mengambil data profil
     <footer>
         <p>&copy; 2025 PlantPals. 💚 Semua hak cipta dilindungi.</p>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showPaymentMethodInfo(); // Tampilkan info saat halaman dimuat (jika ada nilai default/terpilih)
+        });
+
+        function showPaymentMethodInfo() {
+            const selectElement = document.getElementById('payment_method');
+            const infoDiv = document.getElementById('paymentMethodInfo');
+            const selectedValue = selectElement.value;
+
+            // Hapus semua konten sebelumnya
+            infoDiv.innerHTML = '';
+            infoDiv.style.display = 'none';
+
+            if (selectedValue === 'bank_transfer') {
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `
+                    <p><strong>Transfer Bank:</strong></p>
+                    <p>Silakan lakukan pembayaran ke rekening berikut:</p>
+                    <p>Bank: <strong>BCA</strong></p>
+                    <p>Nomor Rekening: <strong>123-456-7890</strong></p>
+                    <p>Atas Nama: <strong>PT. PlantPals Indonesia</strong></p>
+                    <p>Mohon konfirmasi pembayaran Anda setelah transfer selesai.</p>
+                `;
+            } else if (selectedValue === 'cod') {
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `
+                    <p><strong>Cash on Delivery (COD):</strong></p>
+                    <p>Pembayaran akan dilakukan secara tunai kepada kurir saat pesanan Anda tiba di alamat tujuan.</p>
+                    <p>Mohon siapkan uang tunai sesuai total pembayaran.</p>
+                `;
+            }
+        }
+    </script>
 </body>
 </html>
