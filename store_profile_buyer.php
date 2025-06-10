@@ -647,7 +647,7 @@ mysqli_close($conn); // Close connection after all data fetching
             .store-nav-bar a { padding: 8px 15px; font-size: 0.9em; }
 
             /* Products Section Container */
-            .products-section-container { padding: 30px; margin-bottom: 30px; }
+            .products-section-container { padding: 30px; margin-bottom: 30px; } /* Tetap full width dari parent */
             .products-section-title { font-size: 2rem; margin-bottom: 25px; }
             .products-from-store-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
             .products-from-store-grid .card img { height: 140px; }
@@ -763,7 +763,7 @@ mysqli_close($conn); // Close connection after all data fetching
                     <i class="fas fa-user-plus"></i> <span id="followText"><?php echo $is_following ? 'Diikuti' : 'Ikuti'; ?></span>
                 </button>
                 <?php else: ?>
-                <span class="store-badge" style="background-color: #007bff; color: white;">Ini Toko Anda</span>
+                <span class="btn followed" style="cursor: default;"><i class="fas fa-store"></i> Ini Toko Anda</span>
                 <?php endif; ?>
                 <a href="/PlantPals/dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($store_details['seller_user_id']); ?>&store_id=<?php echo htmlspecialchars($store_details['id']); ?>&subject=Pesan untuk Toko <?php echo urlencode($store_details['name']); ?>" class="btn">
                     <i class="fas fa-comment-dots"></i> Chat Sekarang

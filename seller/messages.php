@@ -41,10 +41,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
         $stmt_read = mysqli_prepare($conn, "UPDATE messages SET is_read = 1 WHERE id = ? AND receiver_id = ?");
         if ($stmt_read) {
             mysqli_stmt_bind_param($stmt_read, "ii", $message_id, $seller_id);
-            mysqli_stmt_execute($stmt_read);
+            if (!mysqli_stmt_execute($stmt_read)) {
+                error_log("Failed to mark message as read: " . mysqli_stmt_error($stmt_read));
+            }
             mysqli_stmt_close($stmt_read);
+        } else {
+            error_log("Error preparing mark as read statement: " . mysqli_error($conn));
         }
-        header("Location: messages.php"); // Refresh page
+        header("Location: messages.php"); // Refresh page after update
         exit;
     }
     // Add logic for replying to messages later if needed

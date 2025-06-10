@@ -117,6 +117,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
             $popup_status = "error";
         }
     }
+    // Redirect after POST to prevent resubmission
+    header('Location: dashboard.php?page=' . $page . '&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
+    exit();
 }
 
 // --- Handle Update Cart Quantity Action ---
@@ -345,7 +348,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
 // --- Handle Send Message Action (NEW) ---
 if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
     $receiver_id = intval($_POST['receiver_id'] ?? 0); // Seller User ID
-    $store_id_msg = intval($_POST['store_id_msg'] ?? 0); // Store ID
+    $store_id_msg = isset($_POST['store_id_msg']) ? intval($_POST['store_id_msg']) : NULL; // Store ID (can be NULL)
     $subject = trim($_POST['subject'] ?? '');
     $message_content = trim($_POST['message_content'] ?? '');
 
@@ -375,7 +378,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
         } else {
             $sql_insert_message = "INSERT INTO messages (sender_id, receiver_id, store_id, subject, message) VALUES (?, ?, ?, ?, ?)";
             if ($stmt_insert_message = mysqli_prepare($conn, $sql_insert_message)) {
-                // If store_id_msg is 0, set to NULL in DB
+                // If store_id_msg is 0 or not set, it should be NULL in DB
                 $store_id_param = ($store_id_msg > 0) ? $store_id_msg : NULL; 
                 mysqli_stmt_bind_param($stmt_insert_message, "iiiss", $user_id, $receiver_id, $store_id_param, $subject, $message_content);
                 if (mysqli_stmt_execute($stmt_insert_message)) {
@@ -436,7 +439,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     $popup_status = urldecode($_GET['popup_status']);
 }
 
-mysqli_close($conn);
+// --- CLOSE DATABASE CONNECTION AT THE VERY END ---
+// mysqli_close($conn); // Hapus penutupan koneksi di sini
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -830,27 +834,37 @@ mysqli_close($conn);
             border: 1px solid #ccc;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             min-height: 300px;
+            max-height: 500px; /* Limit height for scroll */
             overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
+        .chat-messages-panel h3 { /* Style for message history title */
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
         .chat-message-item {
-            background-color: #e0e0e0;
             padding: 10px 15px;
             margin-bottom: 10px;
-            border: 1px solid #bbb;
-            display: flex;
-            flex-direction: column;
+            max-width: 70%; /* Limit message bubble width */
+            border: 1px solid transparent; /* default border */
+            word-wrap: break-word; /* Ensure long words break */
         }
         .chat-message-item.sent {
             align-self: flex-end;
-            background-color: #D60050;
+            background-color: #D60050; /* Sent messages are pink */
             color: white;
+            border-color: #D60050;
         }
         .chat-message-item.received {
             align-self: flex-start;
-            background-color: #000000;
+            background-color: #000000; /* Received messages are black */
             color: white;
+            border-color: #000000;
         }
         .message-sender {
             font-weight: 600;
@@ -900,7 +914,40 @@ mysqli_close($conn);
 
         <main class="content">
             <?php
+            // Pastikan koneksi database tidak ditutup sebelum semua query
+            // Code for dashboard main content (home, products, cart, profile, orders, chat, contact)
+            // ... (Isi dari setiap halaman akan tetap di sini)
+            
+            // Contoh untuk halaman 'home'
             if ($page == 'home') {
+                // Fetch Products from Database for Home Page
+                $flowers_from_db = [];
+                $sql_products = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+                                 FROM products p
+                                 LEFT JOIN users u ON p.seller_id = u.id
+                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
+                                 ORDER BY p.name ASC";
+                $result_products = mysqli_query($conn, $sql_products);
+                if ($result_products) {
+                    while ($row = mysqli_fetch_assoc($result_products)) {
+                        $flowers_from_db[] = $row;
+                    }
+                }
+                $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
+
+                // Fetch Featured Products
+                $featured_products = [];
+                $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
+                                 FROM products p
+                                 LEFT JOIN users u ON p.seller_id = u.id
+                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
+                                 ORDER BY RAND() LIMIT 4";
+                $result_featured = mysqli_query($conn, $sql_featured);
+                if ($result_featured) {
+                    while ($row = mysqli_fetch_assoc($result_featured)) {
+                        $featured_products[] = $row;
+                    }
+                }
                 ?>
                 <h2>Selamat Datang di PlantPals!</h2>
                 <form class="search-bar" action="dashboard.php" method="get">
@@ -992,12 +1039,27 @@ mysqli_close($conn);
                 ?>
                 </div> <?php
             } elseif ($page == 'products') {
+                // Fetch Products from Database for Products Page
+                $flowers_from_db_products_page = [];
+                $sql_products_page = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+                                 FROM products p
+                                 LEFT JOIN users u ON p.seller_id = u.id
+                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
+                                 ORDER BY p.name ASC";
+                $result_products_page = mysqli_query($conn, $sql_products_page);
+                if ($result_products_page) {
+                    while ($row = mysqli_fetch_assoc($result_products_page)) {
+                        $flowers_from_db_products_page[] = $row;
+                    }
+                }
+                $flowers_to_display_products_page = empty($flowers_from_db_products_page) ? $all_initial_products : $flowers_from_db_products_page;
+
                 ?>
                 <div class="page-content-panel">
                     <h2>Katalog Produk Kami</h2>
                     <p class="page-description">Temukan berbagai tanaman hias pilihan dari penjual terpercaya!</p>
                     <div class="product-list-page">
-                        <?php foreach ($flowers_to_display as $flower):
+                        <?php foreach ($flowers_to_display_products_page as $flower):
                             $selling_store = null;
                             if (isset($flower['seller_id']) && isset($stores_by_seller_id[$flower['seller_id']])) {
                                 $selling_store = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
@@ -1047,20 +1109,21 @@ mysqli_close($conn);
                 </div>
                 <?php
             } elseif ($page == 'cart') {
-                $cart_items = $_SESSION['cart'] ?? [];
-                $total_cart_amount = 0;
+                // ... (existing cart page logic)
                 ?>
                 <div class="page-content-panel">
                     <h2><i class="fas fa-shopping-cart"></i> Keranjang Belanja Anda</h2>
-                    <?php if (empty($cart_items)): ?>
+                    <?php if (empty($_SESSION['cart'])): ?>
                         <div class="empty-cart-message">
                             <i class="fas fa-box-open fa-3x"></i>
                             <p>Keranjang Anda masih kosong.</p>
                             <a href="dashboard.php?page=products" class="btn-primary" style="margin-top: 20px;">Mulai Belanja</a>
                         </div>
-                    <?php else: ?>
+                    <?php else: 
+                        $total_cart_amount = 0; // Initialize total_cart_amount for cart page
+                    ?>
                         <div class="cart-items-list">
-                            <?php foreach ($cart_items as $product_id => $item):
+                            <?php foreach ($_SESSION['cart'] as $product_id => $item):
                                 $subtotal = $item['price'] * $item['quantity'];
                                 $total_cart_amount += $subtotal;
                             ?>
@@ -1090,7 +1153,7 @@ mysqli_close($conn);
                             <p>Total Keranjang: Rp <?php echo number_format($total_cart_amount, 0, ',', '.'); ?></p>
                             <form action="order_form.php" method="post">
                                 <input type="hidden" name="action" value="checkout_cart">
-                                <?php foreach ($cart_items as $product_id => $item): ?>
+                                <?php foreach ($_SESSION['cart'] as $product_id => $item): ?>
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][id]" value="<?php echo htmlspecialchars($item['id']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][name]" value="<?php echo htmlspecialchars($item['name']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][price]" value="<?php echo htmlspecialchars($item['price']); ?>">
@@ -1269,7 +1332,8 @@ mysqli_close($conn);
 
                 // Fetch messages for the current user (as sender or receiver)
                 $messages = [];
-                $sql_messages = "SELECT m.*, s.name as sender_username, r.username as receiver_username, st.name as related_store_name
+                // Query to get messages between current user and target seller
+                $sql_messages = "SELECT m.*, s.username as sender_username_display, r.username as receiver_username_display, st.name as related_store_name
                                 FROM messages m
                                 JOIN users s ON m.sender_id = s.id
                                 JOIN users r ON m.receiver_id = r.id
@@ -1277,6 +1341,8 @@ mysqli_close($conn);
                                 WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
                                 ORDER BY m.sent_at ASC";
                 if ($stmt_messages = mysqli_prepare($conn, $sql_messages)) {
+                    // Bind parameters for sender_id = user_id AND receiver_id = target_seller_id
+                    // OR sender_id = target_seller_id AND receiver_id = user_id
                     mysqli_stmt_bind_param($stmt_messages, "iiii", $user_id, $target_seller_id, $target_seller_id, $user_id);
                     mysqli_stmt_execute($stmt_messages);
                     $result_messages = mysqli_stmt_get_result($stmt_messages);
@@ -1332,7 +1398,7 @@ mysqli_close($conn);
                                 <?php foreach ($messages as $msg): ?>
                                     <div class="chat-message-item <?php echo ($msg['sender_id'] == $user_id) ? 'sent' : 'received'; ?>">
                                         <span class="message-sender">
-                                            <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username']); ?> 
+                                            <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username_display']); ?> 
                                             <?php if ($msg['related_store_name']): ?>
                                                 (Toko: <?php echo htmlspecialchars($msg['related_store_name']); ?>)
                                             <?php endif; ?>
@@ -1441,3 +1507,7 @@ mysqli_close($conn);
     </script>
 </body>
 </html>
+<?php
+// --- CLOSE DATABASE CONNECTION AT THE VERY END ---
+mysqli_close($conn);
+?>
