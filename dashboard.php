@@ -397,38 +397,40 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
             }
         }
     }
-    header('Location: dashboard.php?page=chat&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
+    header('Location: dashboard.php?page=chat&seller_id=' . urlencode($receiver_id) . '&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
 
 
-// --- Fetch Products from Database ---
+// --- Fetch Products from Database for all pages ---
 $flowers_from_db = [];
-$sql_products = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+$sql_products_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
                  WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
                  ORDER BY p.name ASC";
-$result_products = mysqli_query($conn, $sql_products);
-if ($result_products) {
-    while ($row = mysqli_fetch_assoc($result_products)) {
+$result_products_all = mysqli_query($conn, $sql_products_all);
+if ($result_products_all) {
+    while ($row = mysqli_fetch_assoc($result_products_all)) {
         $flowers_from_db[] = $row;
     }
 }
 $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
 
 
-// --- Fetch Featured Products ---
+// --- Fetch Featured Products (Only for home page) ---
 $featured_products = [];
-$sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
-                 FROM products p
-                 LEFT JOIN users u ON p.seller_id = u.id
-                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                 ORDER BY RAND() LIMIT 4";
-$result_featured = mysqli_query($conn, $sql_featured);
-if ($result_featured) {
-    while ($row = mysqli_fetch_assoc($result_featured)) {
-        $featured_products[] = $row;
+if ($page == 'home') { // Only fetch if on home page
+    $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
+                     FROM products p
+                     LEFT JOIN users u ON p.seller_id = u.id
+                     WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
+                     ORDER BY RAND() LIMIT 4";
+    $result_featured = mysqli_query($conn, $sql_featured);
+    if ($result_featured) {
+        while ($row = mysqli_fetch_assoc($result_featured)) {
+            $featured_products[] = $row;
+        }
     }
 }
 
@@ -439,8 +441,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     $popup_status = urldecode($_GET['popup_status']);
 }
 
-// --- CLOSE DATABASE CONNECTION AT THE VERY END ---
-// mysqli_close($conn); // Hapus penutupan koneksi di sini
+// All DB queries are now before HTML output.
+// mysqli_close($conn) will be at the very end of the file.
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -808,64 +810,130 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
         }
 
         /* NEW: Chat Specific Styles (Buyer Dashboard) */
-        .chat-container {
+        .messages-page-layout {
             display: flex;
-            flex-direction: column;
             gap: 20px;
-            max-width: 800px;
-            margin: 0 auto;
+            margin-top: 20px;
         }
-        .chat-form-panel {
+        .conversation-list-panel {
+            flex-basis: 250px; /* Lebar panel kiri */
+            flex-shrink: 0;
+            max-height: 700px; /* Tinggi maksimum untuk scroll */
+            overflow-y: auto;
+            padding: 20px;
             background: #FFFFFF;
-            padding: 30px;
             border: 1px solid #ccc;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        .chat-form-panel h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 1.8rem;
-            color: #000;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .chat-messages-panel {
-            background: #f9f9f9;
-            padding: 20px;
-            border: 1px solid #ccc;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            min-height: 300px;
-            max-height: 500px; /* Limit height for scroll */
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-messages-panel h3 { /* Style for message history title */
+        .conversation-list-panel h3 {
             font-family: 'Montserrat', sans-serif;
             font-size: 1.5rem;
-            color: #333;
-            margin-bottom: 15px;
+            color: #000;
+            margin-bottom: 20px;
             border-bottom: 1px solid #eee;
             padding-bottom: 10px;
         }
+        .conversation-item {
+            display: block;
+            padding: 10px 15px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            text-decoration: none;
+            color: #333;
+            position: relative;
+            margin-bottom: 5px;
+        }
+        .conversation-item.active {
+            background-color: #f0f0f0 !important; /* Highlight active conversation */
+            border-left: 3px solid #D60050;
+        }
+        .conversation-item:hover {
+            background-color: #f5f5f5;
+        }
+        .conversation-item strong {
+            font-size: 1rem;
+        }
+        .conversation-item span {
+            font-size: 0.85em;
+            color: #777;
+            float: right;
+        }
+        .conversation-item .unread-count {
+            background-color: #D60050;
+            color: white;
+            padding: 2px 7px;
+            font-size: 0.75em;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .chat-area-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #FFFFFF;
+            border: 1px solid #ccc;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .chat-area-panel h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            color: #000;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .chat-messages-display {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Gap between message bubbles */
+        }
         .chat-message-item {
             padding: 10px 15px;
-            margin-bottom: 10px;
             max-width: 70%; /* Limit message bubble width */
             border: 1px solid transparent; /* default border */
             word-wrap: break-word; /* Ensure long words break */
+            position: relative; /* For triangle pointer */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow for bubbles */
+            min-width: 120px; /* Ensure bubble is not too small */
         }
+        /* Triangle pointer for chat bubbles */
+        .chat-message-item::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            border: 10px solid transparent;
+        }
+
         .chat-message-item.sent {
             align-self: flex-end;
             background-color: #D60050; /* Sent messages are pink */
             color: white;
             border-color: #D60050;
+            margin-right: 10px; /* Space from edge */
         }
+        .chat-message-item.sent::before {
+            left: 100%; /* Position on the right */
+            border-left-color: #D60050; /* Color matches bubble */
+        }
+
         .chat-message-item.received {
             align-self: flex-start;
             background-color: #000000; /* Received messages are black */
             color: white;
             border-color: #000000;
+            margin-left: 10px; /* Space from edge */
         }
+        .chat-message-item.received::before {
+            right: 100%; /* Position on the left */
+            border-right-color: #000000; /* Color matches bubble */
+        }
+
         .message-sender {
             font-weight: 600;
             margin-bottom: 5px;
@@ -891,6 +959,85 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             padding: 20px;
         }
 
+        /* Style for form inputs within chat panel (send message form) */
+        .reply-form-container form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .reply-form-container textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 60px; /* Adjusted min height */
+            box-sizing: border-box;
+        }
+        .reply-form-container textarea:focus {
+            border-color: #D60050;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(214,0,80,0.1);
+        }
+        .reply-form-container .btn {
+            background-color: #D60050; /* Solid pink */
+            color: white;
+            padding: 8px 15px; /* Smaller padding */
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem; /* Smaller font */
+            align-self: flex-end; /* Align to right */
+        }
+        .reply-form-container .btn:hover {
+            background-color: #A60040;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .messages-page-layout {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .conversation-list-panel {
+                flex-basis: auto;
+                max-height: 300px; /* Shorter on mobile */
+            }
+            .chat-message-item {
+                max-width: 90%; /* Wider bubbles on small screens */
+            }
+        }
+        @media (max-width: 576px) {
+            .conversation-list-panel {
+                padding: 15px;
+            }
+            .conversation-list-panel h3 {
+                font-size: 1.3rem;
+            }
+            .conversation-item {
+                padding: 8px 12px;
+                font-size: 0.95rem;
+            }
+            .chat-area-panel {
+                padding: 15px;
+            }
+            .chat-area-panel h3 {
+                font-size: 1.3rem;
+            }
+            .chat-message-item {
+                font-size: 0.9rem;
+            }
+            .message-sender, .message-date {
+                font-size: 0.75em;
+            }
+            .reply-form-container textarea {
+                min-height: 50px;
+                font-size: 0.9rem;
+            }
+            .reply-form-container .btn {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -914,29 +1061,24 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
 
         <main class="content">
             <?php
-            // Pastikan koneksi database tidak ditutup sebelum semua query
-            // Code for dashboard main content (home, products, cart, profile, orders, chat, contact)
-            // ... (Isi dari setiap halaman akan tetap di sini)
-            
-            // Contoh untuk halaman 'home'
-            if ($page == 'home') {
-                // Fetch Products from Database for Home Page
-                $flowers_from_db = [];
-                $sql_products = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
-                                 FROM products p
-                                 LEFT JOIN users u ON p.seller_id = u.id
-                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                                 ORDER BY p.name ASC";
-                $result_products = mysqli_query($conn, $sql_products);
-                if ($result_products) {
-                    while ($row = mysqli_fetch_assoc($result_products)) {
-                        $flowers_from_db[] = $row;
-                    }
+            // Fetch Products from Database for all pages (moved here to avoid re-fetching in each block)
+            $flowers_from_db = [];
+            $sql_products_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+                             FROM products p
+                             LEFT JOIN users u ON p.seller_id = u.id
+                             WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
+                             ORDER BY p.name ASC";
+            $result_products_all = mysqli_query($conn, $sql_products_all);
+            if ($result_products_all) {
+                while ($row = mysqli_fetch_assoc($result_products_all)) {
+                    $flowers_from_db[] = $row;
                 }
-                $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
+            }
+            $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
 
-                // Fetch Featured Products
-                $featured_products = [];
+            // Fetch Featured Products (Only for home page)
+            $featured_products = [];
+            if ($page == 'home') { // Only fetch if on home page
                 $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
                                  FROM products p
                                  LEFT JOIN users u ON p.seller_id = u.id
@@ -948,6 +1090,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                         $featured_products[] = $row;
                     }
                 }
+            }
+
+            if ($page == 'home') {
                 ?>
                 <h2>Selamat Datang di PlantPals!</h2>
                 <form class="search-bar" action="dashboard.php" method="get">
@@ -1039,27 +1184,12 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 ?>
                 </div> <?php
             } elseif ($page == 'products') {
-                // Fetch Products from Database for Products Page
-                $flowers_from_db_products_page = [];
-                $sql_products_page = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
-                                 FROM products p
-                                 LEFT JOIN users u ON p.seller_id = u.id
-                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                                 ORDER BY p.name ASC";
-                $result_products_page = mysqli_query($conn, $sql_products_page);
-                if ($result_products_page) {
-                    while ($row = mysqli_fetch_assoc($result_products_page)) {
-                        $flowers_from_db_products_page[] = $row;
-                    }
-                }
-                $flowers_to_display_products_page = empty($flowers_from_db_products_page) ? $all_initial_products : $flowers_from_db_products_page;
-
                 ?>
                 <div class="page-content-panel">
                     <h2>Katalog Produk Kami</h2>
                     <p class="page-description">Temukan berbagai tanaman hias pilihan dari penjual terpercaya!</p>
                     <div class="product-list-page">
-                        <?php foreach ($flowers_to_display_products_page as $flower):
+                        <?php foreach ($flowers_to_display as $flower):
                             $selling_store = null;
                             if (isset($flower['seller_id']) && isset($stores_by_seller_id[$flower['seller_id']])) {
                                 $selling_store = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
@@ -1109,21 +1239,22 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'cart') {
-                // ... (existing cart page logic)
+                $cart_items = $_SESSION['cart'] ?? [];
+                $total_cart_amount = 0;
                 ?>
                 <div class="page-content-panel">
                     <h2><i class="fas fa-shopping-cart"></i> Keranjang Belanja Anda</h2>
-                    <?php if (empty($_SESSION['cart'])): ?>
+                    <?php if (empty($cart_items)): ?>
                         <div class="empty-cart-message">
                             <i class="fas fa-box-open fa-3x"></i>
                             <p>Keranjang Anda masih kosong.</p>
                             <a href="dashboard.php?page=products" class="btn-primary" style="margin-top: 20px;">Mulai Belanja</a>
                         </div>
                     <?php else: 
-                        $total_cart_amount = 0; // Initialize total_cart_amount for cart page
+                        $total_cart_amount = 0; 
                     ?>
                         <div class="cart-items-list">
-                            <?php foreach ($_SESSION['cart'] as $product_id => $item):
+                            <?php foreach ($cart_items as $product_id => $item):
                                 $subtotal = $item['price'] * $item['quantity'];
                                 $total_cart_amount += $subtotal;
                             ?>
@@ -1153,7 +1284,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             <p>Total Keranjang: Rp <?php echo number_format($total_cart_amount, 0, ',', '.'); ?></p>
                             <form action="order_form.php" method="post">
                                 <input type="hidden" name="action" value="checkout_cart">
-                                <?php foreach ($_SESSION['cart'] as $product_id => $item): ?>
+                                <?php foreach ($cart_items as $product_id => $item): ?>
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][id]" value="<?php echo htmlspecialchars($item['id']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][name]" value="<?php echo htmlspecialchars($item['name']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][price]" value="<?php echo htmlspecialchars($item['price']); ?>">
@@ -1168,6 +1299,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'profile') {
+                // Fetch user data for profile page
                 $user_data = [];
                 $sql_user = "SELECT id, username, email, full_name, phone_number, address, created_at, role FROM users WHERE id = ?";
                 if ($stmt_user = mysqli_prepare($conn, $sql_user)) {
@@ -1310,103 +1442,143 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 $seller_username_target = 'Pilih Penjual';
                 $store_name_target = 'Tidak Dikenal';
 
-                $sellers_for_chat = [];
-                $sql_sellers_chat = "SELECT u.id, u.username, s.id as store_db_id, s.name as store_name FROM users u JOIN stores s ON u.id = s.seller_user_id WHERE u.role = 'seller' ORDER BY u.username ASC";
-                $result_sellers_chat = mysqli_query($conn, $sql_sellers_chat);
-                if ($result_sellers_chat) {
-                    while ($row = mysqli_fetch_assoc($result_sellers_chat)) {
-                        $sellers_for_chat[] = $row;
-                        if ($row['id'] == $target_seller_id) {
-                            $seller_username_target = htmlspecialchars($row['username']);
-                            $store_name_target = htmlspecialchars($row['store_name']);
-                            $target_store_id = $row['store_db_id']; // Ensure target_store_id is set if coming from seller_id
+                // Fetch unique sellers who sent messages to/received messages from this buyer
+                $conversation_sellers = [];
+                $sql_conversation_sellers = "SELECT DISTINCT u.id, u.username, s.id as store_db_id, s.name as store_name
+                                            FROM messages m
+                                            JOIN users u ON (m.sender_id = u.id OR m.receiver_id = u.id)
+                                            LEFT JOIN stores s ON u.id = s.seller_user_id
+                                            WHERE (m.sender_id = ? AND u.role = 'seller') OR (m.receiver_id = ? AND u.role = 'seller')
+                                            ORDER BY m.sent_at DESC";
+                if ($stmt_conv_sellers = mysqli_prepare($conn, $sql_conversation_sellers)) {
+                    mysqli_stmt_bind_param($stmt_conv_sellers, "ii", $user_id, $user_id);
+                    mysqli_stmt_execute($stmt_conv_sellers);
+                    $result_conv_sellers = mysqli_stmt_get_result($stmt_conv_sellers);
+                    $seen_seller_ids = []; // To ensure unique sellers
+                    while ($row_conv_seller = mysqli_fetch_assoc($result_conv_sellers)) {
+                        if (!in_array($row_conv_seller['id'], $seen_seller_ids)) {
+                            $conversation_sellers[] = $row_conv_seller;
+                            $seen_seller_ids[] = $row_conv_seller['id'];
                         }
                     }
-                }
-                if ($target_seller_id == 0 && !empty($sellers_for_chat)) {
-                    $target_seller_id = $sellers_for_chat[0]['id'];
-                    $seller_username_target = htmlspecialchars($sellers_for_chat[0]['username']);
-                    $store_name_target = htmlspecialchars($sellers_for_chat[0]['store_name']);
-                    $target_store_id = $sellers_for_chat[0]['store_db_id'];
+                    mysqli_stmt_close($stmt_conv_sellers);
                 }
 
-                // Fetch messages for the current user (as sender or receiver)
+                // If a conversation seller is selected, fetch the messages for that conversation
                 $messages = [];
-                // Query to get messages between current user and target seller
-                $sql_messages = "SELECT m.*, s.username as sender_username_display, r.username as receiver_username_display, st.name as related_store_name
-                                FROM messages m
-                                JOIN users s ON m.sender_id = s.id
-                                JOIN users r ON m.receiver_id = r.id
-                                LEFT JOIN stores st ON m.store_id = st.id
-                                WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
-                                ORDER BY m.sent_at ASC";
-                if ($stmt_messages = mysqli_prepare($conn, $sql_messages)) {
-                    // Bind parameters for sender_id = user_id AND receiver_id = target_seller_id
-                    // OR sender_id = target_seller_id AND receiver_id = user_id
-                    mysqli_stmt_bind_param($stmt_messages, "iiii", $user_id, $target_seller_id, $target_seller_id, $user_id);
-                    mysqli_stmt_execute($stmt_messages);
-                    $result_messages = mysqli_stmt_get_result($stmt_messages);
-                    while($row = mysqli_fetch_assoc($result_messages)) {
-                        $messages[] = $row;
+                if ($target_seller_id > 0) {
+                    // Get username and store name of the selected target seller
+                    $stmt_get_seller_info = mysqli_prepare($conn, "SELECT u.username, s.name as store_name FROM users u LEFT JOIN stores s ON u.id = s.seller_user_id WHERE u.id = ? AND u.role = 'seller'");
+                    if ($stmt_get_seller_info) {
+                        mysqli_stmt_bind_param($stmt_get_seller_info, "i", $target_seller_id);
+                        mysqli_stmt_execute($stmt_get_seller_info);
+                        mysqli_stmt_bind_result($stmt_get_seller_info, $uname, $sname);
+                        if (mysqli_stmt_fetch($stmt_get_seller_info)) {
+                            $seller_username_target = htmlspecialchars($uname);
+                            $store_name_target = htmlspecialchars($sname ?? 'Toko Tidak Dikenal');
+                        }
+                        mysqli_stmt_close($stmt_get_seller_info);
                     }
-                    mysqli_stmt_close($stmt_messages);
+
+                    // Fetch messages between current user and target seller
+                    $sql_conversation_messages = "SELECT m.*, s.username as sender_username_display, r.username as receiver_username_display, st.name as related_store_name
+                                                FROM messages m
+                                                JOIN users s ON m.sender_id = s.id
+                                                JOIN users r ON m.receiver_id = r.id
+                                                LEFT JOIN stores st ON m.store_id = st.id
+                                                WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+                                                ORDER BY m.sent_at ASC";
+                    if ($stmt_conv_messages = mysqli_prepare($conn, $sql_conversation_messages)) {
+                        mysqli_stmt_bind_param($stmt_conv_messages, "iiii", $user_id, $target_seller_id, $target_seller_id, $user_id);
+                        mysqli_stmt_execute($stmt_conv_messages);
+                        $result_conv_messages = mysqli_stmt_get_result($stmt_conv_messages);
+                        while ($row_msg = mysqli_fetch_assoc($result_conv_messages)) {
+                            $messages[] = $row_msg;
+                            // Update related store ID if found in any message
+                            if ($row_msg['store_id']) {
+                                $target_store_id = $row_msg['store_id'];
+                            }
+                        }
+                        mysqli_stmt_close($stmt_conv_messages);
+                    }
                 }
             ?>
                 <div class="page-content-panel">
                     <h2><i class="fas fa-comments"></i> Pesan Saya</h2>
                     <p class="page-description">Kirim pesan kepada penjual atau lihat riwayat percakapan Anda.</p>
 
-                    <div class="chat-container">
-                        <div class="chat-form-panel">
-                            <h3>Kirim Pesan ke Penjual</h3>
-                            <form action="dashboard.php" method="post">
-                                <input type="hidden" name="action" value="send_message">
-                                <input type="hidden" name="receiver_id" value="<?php echo htmlspecialchars($target_seller_id); ?>">
-                                <input type="hidden" name="store_id_msg" value="<?php echo htmlspecialchars($target_store_id); ?>">
-
-                                <div class="form-group">
-                                    <label for="chat_receiver">Penerima:</label>
-                                    <select id="chat_receiver" name="receiver_id_select" onchange="window.location.href='dashboard.php?page=chat&seller_id=' + this.value + '&store_id=' + this.options[this.selectedIndex].dataset.storeid">
-                                        <?php if (empty($sellers_for_chat)): ?>
-                                            <option value="">Tidak ada penjual tersedia</option>
-                                        <?php else: ?>
-                                            <?php foreach ($sellers_for_chat as $seller_chat_option): ?>
-                                                <option value="<?php echo htmlspecialchars($seller_chat_option['id']); ?>" data-storeid="<?php echo htmlspecialchars($seller_chat_option['store_db_id']); ?>" <?php echo ($seller_chat_option['id'] == $target_seller_id) ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($seller_chat_option['username']); ?> (<?php echo htmlspecialchars($seller_chat_option['store_name']); ?>)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subject">Subjek:</label>
-                                    <input type="text" id="subject" name="subject" value="<?php echo htmlspecialchars($default_subject); ?>" placeholder="Subjek pesan Anda">
-                                </div>
-                                <div class="form-group">
-                                    <label for="message_content">Pesan:</label>
-                                    <textarea id="message_content" name="message_content" rows="6" required placeholder="Tulis pesan Anda di sini..."><?php echo htmlspecialchars($default_message_content); ?></textarea>
-                                </div>
-                                <button type="submit" class="btn-primary">Kirim Pesan</button>
-                            </form>
+                    <div class="messages-page-layout">
+                        <div class="conversation-list-panel card-panel">
+                            <h3>Percakapan</h3>
+                            <?php if (empty($conversation_sellers)): ?>
+                                <p style="color: #777;">Belum ada percakapan dengan penjual.</p>
+                            <?php else: ?>
+                                <ul style="list-style: none; padding: 0;">
+                                    <?php foreach ($conversation_sellers as $seller_conv):
+                                        // Count unread messages for this seller (messages FROM seller to buyer)
+                                        $unread_count = 0;
+                                        $temp_conn = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
+                                        $stmt_unread = mysqli_prepare($temp_conn, "SELECT COUNT(id) FROM messages WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+                                        if ($stmt_unread) {
+                                            mysqli_stmt_bind_param($stmt_unread, "ii", $seller_conv['id'], $user_id);
+                                            mysqli_stmt_execute($stmt_unread);
+                                            mysqli_stmt_bind_result($stmt_unread, $count);
+                                            mysqli_stmt_fetch($stmt_unread);
+                                            $unread_count = $count;
+                                            mysqli_stmt_close($stmt_unread);
+                                        }
+                                        mysqli_close($temp_conn);
+                                    ?>
+                                        <li style="margin-bottom: 5px;">
+                                            <a href="dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($seller_conv['id']); ?>&store_id=<?php echo htmlspecialchars($seller_conv['store_db_id'] ?? 0); ?>" 
+                                               class="conversation-item <?php echo ($seller_conv['id'] == $target_seller_id) ? 'active' : ''; ?>">
+                                                <strong><?php echo htmlspecialchars($seller_conv['username']); ?> (<?php echo htmlspecialchars($seller_conv['store_name']); ?>)</strong>
+                                                <?php if ($unread_count > 0): ?>
+                                                    <span class="unread-count"><?php echo $unread_count; ?></span>
+                                                <?php endif; ?>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                         </div>
 
-                        <div class="chat-messages-panel">
-                            <h3>Riwayat Pesan dengan <?php echo $seller_username_target; ?></h3>
-                            <?php if (empty($messages)): ?>
-                                <p class="no-messages">Belum ada pesan dalam percakapan ini.</p>
+                        <div class="chat-area-panel card-panel">
+                            <?php if ($target_seller_id > 0): ?>
+                                <h3>Percakapan dengan <?php echo $seller_username_target; ?> (<?php echo $store_name_target; ?>)</h3>
+                                
+                                <div class="chat-messages-display">
+                                    <?php if (empty($messages)): ?>
+                                        <p class="no-messages">Belum ada pesan dalam percakapan ini.</p>
+                                    <?php else: ?>
+                                        <?php foreach ($messages as $msg): ?>
+                                            <div class="chat-message-item <?php echo ($msg['sender_id'] == $user_id) ? 'sent' : 'received'; ?>">
+                                                <span class="message-sender">
+                                                    <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username_display']); ?> 
+                                                    <?php if ($msg['related_store_name']): ?>
+                                                        (Toko: <?php echo htmlspecialchars($msg['related_store_name']); ?>)
+                                                    <?php endif; ?>
+                                                </span>
+                                                <p class="message-content"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></p>
+                                                <span class="message-date"><?php echo htmlspecialchars(date('d M Y, H:i', strtotime($msg['sent_at']))); ?></span>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="reply-form-container">
+                                    <form action="dashboard.php" method="post">
+                                        <input type="hidden" name="action" value="send_message">
+                                        <input type="hidden" name="receiver_id" value="<?php echo htmlspecialchars($target_seller_id); ?>">
+                                        <input type="hidden" name="store_id_msg" value="<?php echo htmlspecialchars($target_store_id); ?>">
+                                        <input type="hidden" name="subject" value="Balasan dari Pembeli">
+                                        
+                                        <textarea name="message_content" rows="3" placeholder="Tulis pesan Anda di sini..." required></textarea>
+                                        <button type="submit" class="btn-primary">Kirim Pesan</button>
+                                    </form>
+                                </div>
                             <?php else: ?>
-                                <?php foreach ($messages as $msg): ?>
-                                    <div class="chat-message-item <?php echo ($msg['sender_id'] == $user_id) ? 'sent' : 'received'; ?>">
-                                        <span class="message-sender">
-                                            <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username_display']); ?> 
-                                            <?php if ($msg['related_store_name']): ?>
-                                                (Toko: <?php echo htmlspecialchars($msg['related_store_name']); ?>)
-                                            <?php endif; ?>
-                                        </span>
-                                        <p class="message-content"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></p>
-                                        <span class="message-date"><?php echo htmlspecialchars(date('d M Y, H:i', strtotime($msg['sent_at']))); ?></span>
-                                    </div>
-                                <?php endforeach; ?>
+                                <p style="text-align: center; color: #777;">Pilih percakapan dari daftar di sebelah kiri atau kirim pesan baru.</p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1508,6 +1680,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
 </body>
 </html>
 <?php
-// --- CLOSE DATABASE CONNECTION AT THE VERY END ---
+// --- CLOSE DATABASE CONNECTION AT THE VERY END OF dashboard.php ---
 mysqli_close($conn);
 ?>
