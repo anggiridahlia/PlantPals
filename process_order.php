@@ -205,9 +205,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $icon_class = "fas fa-check-circle";
                 
                 // Hapus item dari sesi keranjang setelah checkout berhasil
-                foreach ($products_to_process as $item) {
-                    if (isset($_SESSION['cart'][$item['id']])) {
-                        unset($_SESSION['cart'][$item['id']]);
+                // Hanya hapus jika datang dari keranjang (bukan single product buy now)
+                if (isset($_POST['checkout_items'])) {
+                    foreach ($products_to_process as $item) {
+                        if (isset($_SESSION['cart'][$item['id']])) {
+                            unset($_SESSION['cart'][$item['id']]);
+                        }
                     }
                 }
 

@@ -15,7 +15,11 @@ $user_id = $_SESSION['id']; // Ambil ID pengguna dari sesi
 $cart_items_for_checkout = [];
 $total_checkout_amount = 0;
 
+// Koneksi ke database
+require_once 'config.php'; 
+
 // Cek apakah data keranjang dikirimkan melalui POST dari dashboard.php?page=cart
+// ATAU dari GET request dari store_profile_buyer.php atau detail_flower.php
 if (isset($_POST['action']) && $_POST['action'] === 'checkout_cart' && isset($_POST['cart_items'])) {
     $cart_items_raw = $_POST['cart_items'];
 
@@ -45,17 +49,54 @@ if (isset($_POST['action']) && $_POST['action'] === 'checkout_cart' && isset($_P
         }
     }
 
-    // Jika keranjang kosong setelah validasi, redirect kembali
-    if (empty($cart_items_for_checkout)) {
-        echo "<script>alert('Keranjang pembayaran Anda kosong atau tidak valid.'); window.location.href='dashboard.php?page=cart';</script>";
-        exit();
+} elseif (isset($_GET['action']) && $_GET['action'] === 'buy_now_single_product') {
+    // Logika untuk "Pesan Sekarang" dari store_profile_buyer.php atau detail_flower.php
+    $product_id_single = intval($_GET['product_id'] ?? 0);
+    $product_name_single = htmlspecialchars($_GET['product_name'] ?? '');
+    $product_price_single = floatval($_GET['product_price'] ?? 0);
+    $quantity_single = intval($_GET['quantity'] ?? 1); // Default 1
+    $store_id_string_single = htmlspecialchars($_GET['store_id_string'] ?? '');
+    $store_name_single = htmlspecialchars($_GET['store_name'] ?? '');
+
+    if ($product_id_single > 0 && $quantity_single > 0 && $product_price_single >= 0) {
+        // Fetch real stock from DB before allowing to order
+        $db_stock_single = 0;
+        $stmt_stock_single = mysqli_prepare($conn, "SELECT stock FROM products WHERE id = ?");
+        if ($stmt_stock_single) {
+            mysqli_stmt_bind_param($stmt_stock_single, "i", $product_id_single);
+            mysqli_stmt_execute($stmt_stock_single);
+            mysqli_stmt_bind_result($stmt_stock_single, $db_stock_single);
+            mysqli_stmt_fetch($stmt_stock_single);
+            mysqli_stmt_close($stmt_stock_single);
+        }
+
+        if ($quantity_single > $db_stock_single) {
+             echo "<script>alert('Stok untuk " . $product_name_single . " tidak mencukupi. Tersedia: " . $db_stock_single . ".'); window.location.href='dashboard.php?page=home';</script>";
+             exit();
+        }
+
+        $subtotal_single = $product_price_single * $quantity_single;
+        $total_checkout_amount = $subtotal_single;
+
+        $cart_items_for_checkout[$product_id_single] = [
+            'id' => $product_id_single,
+            'name' => $product_name_single,
+            'price' => $product_price_single,
+            'quantity' => $quantity_single,
+            'subtotal' => $subtotal_single,
+            'store_id_string' => $store_id_string_single,
+            'store_name' => $store_name_single
+        ];
     }
 
-} else {
-    // Jika tidak ada data keranjang yang valid dari POST, redirect ke keranjang
-    echo "<script>alert('Tidak ada item yang dipilih untuk pembayaran. Silakan pilih item dari keranjang.'); window.location.href='dashboard.php?page=cart';</script>";
+}
+
+// Jika keranjang kosong setelah validasi (dari POST) atau tidak ada single product yang valid (dari GET), redirect kembali
+if (empty($cart_items_for_checkout)) {
+    echo "<script>alert('Keranjang pembayaran Anda kosong atau tidak valid.'); window.location.href='dashboard.php?page=cart';</script>";
     exit();
 }
+
 
 // Data pengguna yang akan diisi otomatis (jika ada di sesi atau DB)
 $user_full_name = '';
@@ -64,7 +105,6 @@ $user_phone_number = '';
 $user_email = '';
 
 // Ambil data profil pengguna dari database untuk mengisi form otomatis
-require_once 'config.php'; // Koneksi database
 $sql_user_profile = "SELECT full_name, address, phone_number, email FROM users WHERE id = ?";
 if ($stmt_profile = mysqli_prepare($conn, $sql_user_profile)) {
     mysqli_stmt_bind_param($stmt_profile, "i", $user_id);

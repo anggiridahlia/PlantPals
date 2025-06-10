@@ -25,6 +25,32 @@ require_once 'config.php'; // Database connection, now opened once.
 $popup_message = "";
 $popup_status = ""; // 'success' or 'error'
 
+// --- Fetch Stores from Database and Organize by seller_user_id (moved up) ---
+// Hanya ambil toko yang dimiliki oleh user dengan role 'seller'
+$stores_by_seller_id = [];
+$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id
+               FROM stores s
+               JOIN users u ON s.seller_user_id = u.id
+               WHERE u.role = 'seller'
+               ORDER BY s.name ASC";
+$result_stores = mysqli_query($conn, $sql_stores);
+if ($result_stores) {
+    while ($row_store = mysqli_fetch_assoc($result_stores)) {
+        $seller_id_for_store = $row_store['seller_user_id'];
+        if (!isset($stores_by_seller_id[$seller_id_for_store])) {
+            $stores_by_seller_id[$seller_id_for_store] = [];
+        }
+        $stores_by_seller_id[$seller_id_for_store][] = $row_store;
+    }
+}
+// Fallback jika tidak ada toko yang terhubung ke seller di DB
+if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
+    $stores_by_seller_id[$DEFAULT_FALLBACK_SELLER_ID] = [
+        ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID],
+    ];
+}
+
+
 // --- Handle Add to Cart Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     $product_id = $_POST['product_id'] ?? null;
@@ -33,8 +59,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     if ($product_id) {
         $sql_product = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                         FROM products p
-                        LEFT JOIN users u ON p.seller_id = u.id
-                        WHERE p.id = ? AND (u.role = 'seller' OR p.seller_id IS NULL)";
+                        WHERE p.id = ?"; // Hapus LEFT JOIN users karena tidak selalu ada role seller untuk produk
         
         if ($stmt_product = mysqli_prepare($conn, $sql_product)) {
             mysqli_stmt_bind_param($stmt_product, "i", $product_id);
@@ -44,7 +69,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
             mysqli_stmt_close($stmt_product);
 
             if ($product_details) {
-                // Fetch store details for the product
+                // Fetch store details for the product from $stores_by_seller_id
                 $selling_store_for_cart = null;
                 if (isset($product_details['seller_id']) && isset($stores_by_seller_id[$product_details['seller_id']])) {
                     $selling_store_for_cart = $stores_by_seller_id[$product_details['seller_id']][0] ?? null;
@@ -126,20 +151,21 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
                 $popup_message = "Kuantitas diperbarui.";
                 $popup_status = "success";
             } else {
-                $popup_message = "Stok tidak mencukupi untuk kuantitas yang diminta. Stok tersedia: " . $current_db_stock . ".";
-                $popup_status = "error";
+                $_SESSION['cart'][$product_id]['quantity'] = $current_db_stock; // Set ke maksimal stok yang ada
+                $popup_message = "Stok tidak mencukupi untuk kuantitas yang diminta. Kuantitas diatur ke: " . $current_db_stock . ".";
+                $popup_status = "error"; // Atau 'info' jika Anda ingin pesan yang lebih lembut
             }
         } else {
             unset($_SESSION['cart'][$product_id]); // Remove if quantity is 0 or less
             $popup_message = "Produk dihapus dari keranjang.";
-            $popup_status = "success"; // Atau 'info' jika ada status pop-up info
+            $popup_status = "success";
         }
     } else {
         $popup_message = "Gagal memperbarui keranjang.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh
-    header('Location: dashboard.php?page=cart');
+    // Redirect to prevent form resubmission on refresh, pass popup info via query params
+    header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
 
@@ -149,13 +175,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'remove_from_cart') {
     if ($product_id && isset($_SESSION['cart'][$product_id])) {
         unset($_SESSION['cart'][$product_id]);
         $popup_message = "Produk dihapus dari keranjang.";
-        $popup_status = "success"; // Atau 'info'
+        $popup_status = "success";
     } else {
         $popup_message = "Gagal menghapus produk dari keranjang.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh
-    header('Location: dashboard.php?page=cart');
+    // Redirect to prevent form resubmission on refresh, pass popup info via query params
+    header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
 
@@ -271,10 +297,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
         $popup_message = "ID pesanan tidak valid untuk pembatalan.";
         $popup_status = "error";
     }
-    // Redirect to prevent form resubmission on refresh
-    header('Location: dashboard.php?page=orders');
+    // Redirect to prevent form resubmission on refresh, pass popup info via query params
+    header('Location: dashboard.php?page=orders&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+
 
 // --- Handle Update Profile Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
@@ -334,18 +361,18 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
         }
     }
     // Redirect untuk menghindari form resubmission dan merefresh data tampilan profil
-    header('Location: dashboard.php?page=profile');
+    header('Location: dashboard.php?page=profile&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
-
 
 // --- Fetch Products from Database ---
 // Pastikan kita ambil seller_id dari produk dan hanya produk dari seller yang aktif/terdaftar
 $flowers_from_db = [];
+// Perbaiki query agar lebih aman dan akurat mengambil produk yang dijual
 $sql_products = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
-                 WHERE u.role = 'seller' OR p.seller_id IS NULL  -- Hanya produk dari seller terdaftar, atau yang belum ada seller_id (utk fallback)
+                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0 -- Hanya produk dari seller yang terdaftar dan memiliki stok
                  ORDER BY p.name ASC";
 $result_products = mysqli_query($conn, $sql_products);
 if ($result_products) {
@@ -357,43 +384,13 @@ if ($result_products) {
 $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
 
 
-// --- Fetch Stores from Database and Organize by seller_user_id ---
-// Hanya ambil toko yang dimiliki oleh user dengan role 'seller'
-$stores_by_seller_id = [];
-$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id
-               FROM stores s
-               JOIN users u ON s.seller_user_id = u.id
-               WHERE u.role = 'seller'
-               ORDER BY s.name ASC";
-$result_stores = mysqli_query($conn, $sql_stores);
-if ($result_stores) {
-    while ($row_store = mysqli_fetch_assoc($result_stores)) {
-        $seller_id_for_store = $row_store['seller_user_id'];
-        if (!isset($stores_by_seller_id[$seller_id_for_store])) {
-            $stores_by_seller_id[$seller_id_for_store] = [];
-        }
-        $stores_by_seller_id[$seller_id_for_store][] = $row_store;
-    }
-}
-
-// Fallback jika tidak ada toko yang terhubung ke seller di DB (misal baru insert user dan belum assign toko),
-// atau untuk testing jika DB stores belum diisi.
-// Gunakan DEFAULT_FALLBACK_SELLER_ID dari data.php
-if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
-    // Asumsi ID seller1 adalah 2. Ini harus sinkron dengan ID seller di tabel 'users' Anda.
-    $stores_by_seller_id = [
-        $DEFAULT_FALLBACK_SELLER_ID => [ // Menggunakan ID seller default dari data.php
-            ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID],
-        ],
-    ];
-}
-
 // --- Fetch Featured Products (e.g., top 4 random products or specific picks) ---
 $featured_products = [];
+// Select products from database, ensure they are from a seller, or have a fallback seller_id
 $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
-                 WHERE u.role = 'seller' OR p.seller_id IS NULL
+                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
                  ORDER BY RAND() LIMIT 4"; // Mengambil 4 produk acak sebagai unggulan
 $result_featured = mysqli_query($conn, $sql_featured);
 if ($result_featured) {
@@ -402,6 +399,12 @@ if ($result_featured) {
     }
 }
 
+
+// Check for popup messages from redirect
+if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
+    $popup_message = urldecode($_GET['popup_message']);
+    $popup_status = urldecode($_GET['popup_status']);
+}
 
 // No mysqli_close($conn); here, it will be at the very end of the file.
 ?>
@@ -545,17 +548,26 @@ if ($result_featured) {
         }
 
         /* Penyesuaian untuk product-item-page di halaman products.php */
-        .product-item-page .card-buttons-container {
+        .product-list-page {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 0 20px;
+            width: 100%;
+        }
+        .product-list-page .product-item-page .card-buttons-container {
             flex-direction: column; /* Pada halaman produk, mungkin lebih baik bertumpuk */
             gap: 10px;
             padding: 0 20px 20px;
         }
-        .product-item-page .card-buttons-container .buy-button {
+        .product-list-page .product-item-page .card-buttons-container .buy-button {
              width: 100%;
         }
-        .product-item-page .card-buttons-container .see-more-btn {
-            display: none; /* Sembunyikan tombol detail jika hanya ingin tombol beli */
+        .product-list-page .product-item-page .card-buttons-container .see-more-btn {
+            /* display: none; */ /* Jangan sembunyikan tombol detail di halaman daftar produk jika ingin fungsional */
+            width: 100%;
         }
+
 
         /* Gaya baru untuk Banner Promosi */
         .promo-banner {
@@ -868,6 +880,7 @@ if ($result_featured) {
                             }
                             $store_link = "#";
                             $store_name_display = "Toko Tidak Dikenal";
+                            // Pastikan store_id_string ada untuk order_form
                             $store_id_string_for_order = "";
                             $store_name_full_for_order = "";
 
@@ -875,14 +888,14 @@ if ($result_featured) {
                                 // Pastikan store_id_string ada
                                 $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string'] ?? '');
                                 if (!empty($store_id_string_for_order)) {
-                                    $store_link = "store_profile.php?store_id_string=" . urlencode($store_id_string_for_order);
+                                    // Arahkan ke store_profile_buyer.php
+                                    $store_link = "store_profile_buyer.php?store_id_string=" . urlencode($store_id_string_for_order);
                                 }
                                 $store_name_display = htmlspecialchars($selling_store['name']);
                                 $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . ($selling_store['address'] ?? 'Alamat Tidak Diketahui') . ")");
                             }
                         ?>
-                        <div class="product-item-page">
-                            <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
+                        <div class="product-item-page card"> <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
                             <div class="card-content">
                                 <h4><?php echo htmlspecialchars($flower['name']); ?></h4>
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
@@ -899,6 +912,7 @@ if ($result_featured) {
                                 </div>
                             </div>
                             <div class="card-buttons-container">
+                                <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $flower['name']))); ?>" class="see-more-btn"><i class="fas fa-info-circle"></i> Detail</a>
                                 <form action="dashboard.php" method="post" style="margin:0;">
                                     <input type="hidden" name="action" value="add_to_cart">
                                     <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($flower['id']); ?>">
@@ -937,12 +951,12 @@ if ($result_featured) {
                                         <p>Dari: <?php echo htmlspecialchars($item['store_name']); ?></p>
                                     </div>
                                     <div class="cart-item-actions">
-                                        <form action="dashboard.php" method="post" style="display:flex; align-items:center;">
+                                        <form action="dashboard.php" method="post" style="display:flex; align-items:center; gap: 5px;">
                                             <input type="hidden" name="action" value="update_cart_quantity">
                                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_id); ?>">
                                             <input type="number" name="quantity" value="<?php echo htmlspecialchars($item['quantity']); ?>" min="0" onchange="this.form.submit()">
-                                            <button type="submit" class="buy-button" style="display:none;">Update</button> </form>
-                                        <form action="dashboard.php" method="post">
+                                        </form>
+                                        <form action="dashboard.php" method="post" style="margin:0;">
                                             <input type="hidden" name="action" value="remove_from_cart">
                                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_id); ?>">
                                             <button type="submit" class="remove-btn"><i class="fas fa-trash"></i> Hapus</button>
@@ -961,7 +975,7 @@ if ($result_featured) {
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][price]" value="<?php echo htmlspecialchars($item['price']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][quantity]" value="<?php echo htmlspecialchars($item['quantity']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_id_string]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
-                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
+                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name']); ?>">
                                 <?php endforeach; ?>
                                 <button type="submit" class="checkout-btn"><i class="fas fa-money-check-alt"></i> Lanjutkan ke Pembayaran</button>
                             </form>
@@ -1081,9 +1095,9 @@ if ($result_featured) {
                                         $order_timestamp = strtotime($order['order_date']);
                                         $current_timestamp = time();
                                         $one_hour_limit = 60 * 60; // 1 jam
-
-                                        if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
-                                            ($order['order_status'] == 'pending' || $order['order_status'] == 'processing')):
+                                        $is_cancel_enabled = (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+                                            ($order['order_status'] == 'pending' || $order['order_status'] == 'processing'));
+                                        if ($is_cancel_enabled):
                                         ?>
                                             <form action="dashboard.php" method="post" style="display:inline-block; margin-left: 10px;">
                                                 <input type="hidden" name="action" value="cancel_order">
@@ -1187,6 +1201,11 @@ if ($result_featured) {
 
             popupCloseBtn.onclick = function() {
                 overlay.classList.remove('active');
+                // Clear URL parameters related to popup after closing
+                const url = new URL(window.location.href);
+                url.searchParams.delete('popup_message');
+                url.searchParams.delete('popup_status');
+                window.history.replaceState({}, document.title, url); // Remove from URL without reloading
             };
 
             // Opsional: Tutup otomatis setelah beberapa detik

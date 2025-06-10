@@ -30,6 +30,7 @@ $current_username = $_SESSION['username'] ?? '';
                 <a href="/PlantPals/seller/products.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/products.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-boxes"></i> Produk Saya</a>
                 <a href="/PlantPals/seller/orders.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/orders.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-receipt"></i> Pesanan Saya</a>
                 <a href="/PlantPals/seller/store_profile.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/store_profile.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-store"></i> Profil Toko</a>
+                <a href="/PlantPals/seller/reviews.php" class="<?php echo (strpos($_SERVER['REQUEST_URI'], 'seller/reviews.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-star-half-alt"></i> Ulasan Produk</a>
             <?php endif; ?>
         </nav>
         <form action="/PlantPals/logout.php" method="post" style="margin:0;">

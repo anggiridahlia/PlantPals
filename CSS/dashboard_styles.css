@@ -350,10 +350,11 @@ header nav {
     border-radius: 2px;
 }
 /* Menargetkan form-group di dalam container edit profil */
-.profile-edit-form-container .form-group {
+.profile-edit-form-container .profile-form-group { /* Menggunakan kelas baru */
     margin-bottom: 20px !important; /* Paksa margin lebih kecil dari default form-group */
 }
-.profile-edit-form-container .form-group label { /* Target label lebih spesifik */
+/* Penargetan spesifik untuk label dan input di dalam form edit profil */
+.profile-edit-form-container .profile-form-label { /* Menggunakan kelas baru */
     display: flex !important; /* Paksa display flex */
     align-items: center !important; /* Paksa align items center */
     gap: 8px !important; /* Paksa gap */
@@ -361,19 +362,31 @@ header nav {
     color: #3a5a20 !important;
     margin-bottom: 8px !important;
 }
-.profile-edit-form-container .form-group label i {
+.profile-edit-form-container .profile-form-label i {
     color: #E5989B !important; /* Paksa ikon form label warna pink */
 }
-.profile-edit-form-container .form-group input,
-.profile-edit-form-container .form-group textarea {
+.profile-edit-form-container .profile-form-input,
+.profile-edit-form-container .profile-form-textarea { /* Menggunakan kelas baru */
     width: 100% !important; /* Paksa lebar 100% */
     padding: 12px !important; /* Paksa padding */
     border: 1px solid #ddd !important; /* Paksa border */
     border-radius: 8px !important; /* Paksa border-radius */
     font-size: 1rem !important; /* Paksa font-size */
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05) !important; /* Paksa shadow */
+    box-sizing: border-box !important; /* Pastikan box-sizing */
 }
-.profile-edit-form-container .form-action-btns {
+.profile-edit-form-container .profile-form-textarea {
+    resize: vertical !important;
+    min-height: 100px !important;
+}
+.profile-edit-form-container .profile-form-input:focus,
+.profile-edit-form-container .profile-form-textarea:focus {
+    border-color: #E5989B !important;
+    box-shadow: 0 0 0 3px rgba(229, 152, 155, 0.2) !important;
+    outline: none !important;
+}
+
+.profile-edit-form-container .profile-form-action-btns { /* Menggunakan kelas baru */
     border-top: 1px solid #eee !important; /* Paksa border top */
     margin-top: 30px !important; /* Paksa margin top standar */
     padding-top: 20px !important; /* Paksa padding top standar */
@@ -614,9 +627,9 @@ header nav {
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
-        margin: 0 auto; /* Margin atas 0 juga di mobile */
+        margin: 10px auto;
         border-radius: 0;
-        box-shadow: none; /* Hilangkan bayangan di mobile */
+        box-shadow: none;
     }
 
     .sidebar {
@@ -769,38 +782,6 @@ header nav {
         gap: 5px;
         text-align: center;
     }
-
-    /* Gaya baru untuk Banner Promosi di Mobile */
-    .promo-banner {
-        padding: 20px;
-        margin-bottom: 30px;
-    }
-    .promo-banner h3 {
-        font-size: 1.8rem;
-    }
-    .promo-banner p {
-        font-size: 1rem;
-    }
-    .promo-banner .btn-promo {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-    }
-
-    /* Gaya baru untuk Produk Unggulan di Mobile */
-    .featured-products-section {
-        margin-bottom: 30px; /* Sesuaikan margin */
-    }
-    .featured-products-section .section-heading {
-        font-size: 1.8rem;
-        margin-bottom: 20px;
-    }
-    .featured-products-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Lebih ringkas di mobile */
-        gap: 20px;
-    }
-    .featured-item.card img {
-        height: 140px; /* Lebih kecil di mobile */
-    }
 }
 
 @media (max-width: 480px) {
@@ -858,36 +839,5 @@ header nav {
     }
     .contact-form .form-group label {
         justify-content: center;
-    }
-
-    /* Penyesuaian untuk cart-item di mobile kecil */
-    .cart-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    .cart-item img {
-        width: 80px;
-        height: 80px;
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
-    .cart-item-details {
-        width: 100%; /* Ambil lebar penuh */
-    }
-    .cart-item-actions {
-        width: 100%;
-        justify-content: flex-end; /* Dorong aksi ke kanan */
-    }
-    .cart-item-actions input[type="number"] {
-        width: 60px;
-        font-size: 0.9rem;
-    }
-    .cart-summary p {
-        font-size: 1.2rem;
-    }
-    .cart-summary .checkout-btn {
-        padding: 12px 20px;
-        font-size: 1.1rem;
     }
 }

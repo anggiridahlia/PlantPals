@@ -17,6 +17,8 @@ $seller_id = $_SESSION['id'];
 $seller_products_count = 0;
 $seller_total_sales_amount = 0;
 $seller_pending_orders = 0;
+$seller_total_reviews = 0; // NEW: Total reviews
+$seller_average_rating = 0; // NEW: Average rating
 
 $result_products = mysqli_query($conn, "SELECT COUNT(id) AS count FROM products WHERE seller_id = $seller_id");
 if ($result_products) { $seller_products_count = mysqli_fetch_assoc($result_products)['count']; }
@@ -41,7 +43,7 @@ $sql_pending_orders = "SELECT COUNT(DISTINCT o.id) AS count
                        FROM orders o
                        JOIN order_items oi ON o.id = oi.order_id
                        JOIN products p ON oi.product_id = p.id
-                       WHERE p.seller_id = ? AND o.order_status = 'pending'";
+                       WHERE p.seller_id = ? AND (o.order_status = 'pending' OR o.order_status = 'processing')"; // Include processing for pending state
 if ($stmt_pending = mysqli_prepare($conn, $sql_pending_orders)) {
     mysqli_stmt_bind_param($stmt_pending, "i", $seller_id);
     mysqli_stmt_execute($stmt_pending);
@@ -50,6 +52,22 @@ if ($stmt_pending = mysqli_prepare($conn, $sql_pending_orders)) {
     $seller_pending_orders = $pending_count;
     mysqli_stmt_close($stmt_pending);
 }
+
+// NEW: Fetch total reviews and average rating for this seller's products
+$sql_reviews_stats = "SELECT COUNT(pr.id) AS total_reviews, AVG(pr.rating) AS avg_rating
+                      FROM product_reviews pr
+                      JOIN products p ON pr.product_id = p.id
+                      WHERE p.seller_id = ?";
+if ($stmt_reviews_stats = mysqli_prepare($conn, $sql_reviews_stats)) {
+    mysqli_stmt_bind_param($stmt_reviews_stats, "i", $seller_id);
+    mysqli_stmt_execute($stmt_reviews_stats);
+    mysqli_stmt_bind_result($stmt_reviews_stats, $total_reviews, $avg_rating);
+    mysqli_stmt_fetch($stmt_reviews_stats);
+    $seller_total_reviews = $total_reviews ?? 0;
+    $seller_average_rating = round($avg_rating ?? 0, 1);
+    mysqli_stmt_close($stmt_reviews_stats);
+}
+
 
 mysqli_close($conn);
 ?>
@@ -70,6 +88,12 @@ mysqli_close($conn);
         <div class="stat-card card-panel">
             <h3>Pesanan Pending <i class="fas fa-hourglass-half"></i></h3>
             <p class="stat-value"><?php echo $seller_pending_orders; ?></p>
+        </div>
+        <div class="stat-card card-panel">
+            <h3>Ulasan Produk <i class="fas fa-star"></i></h3>
+            <p class="stat-value">
+                <?php echo $seller_average_rating; ?>/5 (<?php echo $seller_total_reviews; ?>)
+            </p>
         </div>
     </div>
 
