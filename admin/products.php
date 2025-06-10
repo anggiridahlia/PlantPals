@@ -4,7 +4,12 @@ ini_set('display_errors', 1); // Aktifkan tampilan error di browser
 ini_set('display_startup_errors', 1); // Aktifkan tampilan error saat startup
 error_reporting(E_ALL); // Melaporkan semua jenis error
 
-include ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'auth_middleware.php';
+// Tentukan ROOT_PATH untuk path yang lebih stabil
+// Ini akan mengambil direktori dari file saat ini (admin/products.php)
+// lalu naik satu level (ke PlantPals/)
+define('ROOT_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR); // <<< BARIS INI DITAMBAHKAN
+
+require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'auth_middleware.php';
 require_role('admin');
 require_once ROOT_PATH . 'config.php';
 
@@ -38,6 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($action == 'add' || $action == 'edit') {
         $product_id = isset($_POST['product_id']) ? $_POST['product_id'] : null;
         $name = trim($_POST['name']);
+        // UBAH: img tidak lagi diambil langsung dari POST, tapi dari hasil upload
         $scientific_name = trim($_POST['scientific_name'] ?? '');
         $family = trim($_POST['family'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -49,8 +55,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $seller_id = intval($_POST['seller_id']); // Admin can assign seller
 
         // --- Handle Image Upload ---
-        $img_path = $product_to_edit['img'] ?? null; // Default to existing image path for edit
-        $upload_dir = '/PlantPals/assets/uploads/'; // Folder untuk menyimpan gambar
+        $img_path = $_POST['current_img_path'] ?? null; // Ambil path gambar saat ini jika ada
+        $upload_dir = '/PlantPals/assets/uploads/'; // Folder untuk menyimpan gambar (path web)
         $target_dir = ROOT_PATH . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR; // Path fisik server
 
         // Pastikan direktori upload ada
@@ -83,8 +89,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (move_uploaded_file($file_tmp_name, $target_file)) {
                 $img_path = $upload_dir . $new_file_name;
                 // Jika mengedit dan ada gambar lama, hapus gambar lama (opsional)
-                if ($action == 'edit' && $product_to_edit['img'] && strpos($product_to_edit['img'], $upload_dir) !== false) { // Hanya hapus jika dari folder uploads
-                    $old_file_path = ROOT_PATH . substr($product_to_edit['img'], strlen('/PlantPals/')); // Hapus "/PlantPals/"
+                if ($action == 'edit' && !empty($_POST['current_img_path']) && strpos($_POST['current_img_path'], $upload_dir) !== false) { // Hanya hapus jika dari folder uploads
+                    $old_file_path = ROOT_PATH . substr($_POST['current_img_path'], strlen('/PlantPals/')); // Hapus "/PlantPals/"
                     if (file_exists($old_file_path) && is_file($old_file_path)) {
                         unlink($old_file_path);
                     }
@@ -129,6 +135,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif ($action == 'delete') {
         $product_id = intval($_POST['product_id']);
         // Fetch image path before deleting to unlink the file
+        $upload_dir = '/PlantPals/assets/uploads/'; // Definisi di sini juga
         $stmt_img = mysqli_prepare($conn, "SELECT img FROM products WHERE id = ?");
         if ($stmt_img) {
             mysqli_stmt_bind_param($stmt_img, "i", $product_id);
@@ -173,7 +180,17 @@ if ($result) {
 
 mysqli_close($conn);
 ?>
-<?php include ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Produk Admin - PlantPals</title>
+    <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
+    <link rel="stylesheet" href="/PlantPals/css/admin_seller_styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> </head>
+<body>
+    <?php include ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
 
     <h1>Manajemen Produk</h1>
 
@@ -189,7 +206,8 @@ mysqli_close($conn);
 
             <div class="form-group">
                 <label for="product_image"><i class="fas fa-image"></i> Gambar Produk:</label>
-                <input type="file" id="product_image" name="product_image" accept="image/*"> <?php if ($product_to_edit && $product_to_edit['img']): ?>
+                <input type="file" id="product_image" name="product_image" accept="image/*">
+                <?php if ($product_to_edit && $product_to_edit['img']): ?>
                     <small>Gambar saat ini: <a href="<?php echo htmlspecialchars($product_to_edit['img']); ?>" target="_blank"><?php echo htmlspecialchars(basename($product_to_edit['img'])); ?></a></small><br>
                     <img src="<?php echo htmlspecialchars($product_to_edit['img']); ?>" alt="Gambar Saat Ini" style="max-width: 100px; max-height: 100px; object-fit: cover; margin-top: 10px; border-radius: 5px;">
                     <input type="hidden" name="current_img_path" value="<?php echo htmlspecialchars($product_to_edit['img']); ?>">
@@ -229,7 +247,7 @@ mysqli_close($conn);
 
             <div class="form-group">
                 <label for="price"><i class="fas fa-dollar-sign"></i> Harga (Rp):</label>
-                <input type="number" id="price" name="price" step="0.01" value="<?php echo htmlspecialchars($product_to_edit['price'] ?? ''); ?>" required min="0">
+                <input type="number" id="price" name="price" step="any" value="<?php echo htmlspecialchars($product_to_edit['price'] ?? ''); ?>" required min="0">
             </div>
 
             <div class="form-group">
