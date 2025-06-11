@@ -5,9 +5,7 @@ ini_set('display_startup_errors', 1); // Aktifkan tampilan error saat startup
 error_reporting(E_ALL); // Melaporkan semua jenis error
 
 // Tentukan ROOT_PATH untuk path yang lebih stabil
-// Ini akan mengambil direktori dari file saat ini (admin/products.php)
-// lalu naik satu level (ke PlantPals/)
-define('ROOT_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR); // <<< BARIS INI DITAMBAHKAN
+define('ROOT_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'auth_middleware.php';
 require_role('admin');
@@ -16,7 +14,8 @@ require_once ROOT_PATH . 'config.php';
 $product_to_edit = null;
 if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
     $edit_id = $_GET['edit_id'];
-    $stmt = mysqli_prepare($conn, "SELECT * FROM products WHERE id = ?");
+    // NEW: Select category_id for product_to_edit
+    $stmt = mysqli_prepare($conn, "SELECT id, name, img, scientific_name, family, description, habitat, care_instructions, unique_fact, price, stock, seller_id, category_id FROM products WHERE id = ?");
     if ($stmt) {
         mysqli_stmt_bind_param($stmt, "i", $edit_id);
         mysqli_stmt_execute($stmt);
@@ -36,6 +35,17 @@ if ($result_sellers) {
     }
 }
 
+// NEW: Fetch categories for dropdown
+$categories = [];
+$sql_categories = "SELECT id, name FROM categories ORDER BY name ASC";
+$result_categories = mysqli_query($conn, $sql_categories);
+if ($result_categories) {
+    while ($row_cat = mysqli_fetch_assoc($result_categories)) {
+        $categories[] = $row_cat;
+    }
+}
+
+
 // Handle form submission for ADD/EDIT/DELETE
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST['action'] ?? '';
@@ -43,7 +53,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($action == 'add' || $action == 'edit') {
         $product_id = isset($_POST['product_id']) ? $_POST['product_id'] : null;
         $name = trim($_POST['name']);
-        // UBAH: img tidak lagi diambil langsung dari POST, tapi dari hasil upload
         $scientific_name = trim($_POST['scientific_name'] ?? '');
         $family = trim($_POST['family'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -52,16 +61,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $unique_fact = trim($_POST['unique_fact'] ?? '');
         $price = floatval($_POST['price']);
         $stock = intval($_POST['stock']);
-        $seller_id = intval($_POST['seller_id']); // Admin can assign seller
+        $seller_id_assigned = intval($_POST['seller_id']); // Admin assigns seller_id
+        $category_id = intval($_POST['category_id']); // NEW: Get category_id
 
         // --- Handle Image Upload ---
-        $img_path = $_POST['current_img_path'] ?? null; // Ambil path gambar saat ini jika ada
-        $upload_dir = '/PlantPals/assets/uploads/'; // Folder untuk menyimpan gambar (path web)
+        $img_path = $_POST['current_img_path'] ?? ($product_to_edit['img'] ?? null); // Get current_img_path from POST, fallback to product_to_edit
+        $upload_dir = '/PlantPals/assets/uploads/'; // Folder untuk menyimpan gambar
         $target_dir = ROOT_PATH . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR; // Path fisik server
 
         // Pastikan direktori upload ada
         if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0777, true); // Buat folder jika belum ada, berikan izin penuh (0777)
+            mkdir($target_dir, 0777, true);
         }
 
         if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] == UPLOAD_ERR_OK) {
@@ -88,9 +98,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Pindahkan file yang diunggah
             if (move_uploaded_file($file_tmp_name, $target_file)) {
                 $img_path = $upload_dir . $new_file_name;
-                // Jika mengedit dan ada gambar lama, hapus gambar lama (opsional)
-                if ($action == 'edit' && !empty($_POST['current_img_path']) && strpos($_POST['current_img_path'], $upload_dir) !== false) { // Hanya hapus jika dari folder uploads
-                    $old_file_path = ROOT_PATH . substr($_POST['current_img_path'], strlen('/PlantPals/')); // Hapus "/PlantPals/"
+                // Jika mengedit dan ada gambar lama, hapus gambar lama
+                if ($action == 'edit' && !empty($_POST['current_img_path']) && strpos($_POST['current_img_path'], $upload_dir) !== false) {
+                    $old_file_path = ROOT_PATH . substr($_POST['current_img_path'], strlen('/PlantPals/'));
                     if (file_exists($old_file_path) && is_file($old_file_path)) {
                         unlink($old_file_path);
                     }
@@ -106,20 +116,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         // Jika edit dan tidak ada file baru diunggah, $img_path akan tetap menggunakan path lama
 
-        // Basic validation for required fields (now including img_path check)
-        if (empty($name) || empty($img_path) || !is_numeric($price) || $price < 0 || !is_numeric($stock) || $stock < 0 || empty($seller_id)) {
-            echo "<script>alert('Nama Produk, Gambar, Harga (harus angka positif), Stok (harus angka positif), dan Penjual wajib diisi dengan benar.'); window.history.back();</script>";
+        // Basic validation for required fields
+        // Validate category_id to be a positive integer
+        if (empty($name) || empty($img_path) || !is_numeric($price) || $price < 0 || !is_numeric($stock) || $stock < 0 || empty($seller_id_assigned) || $category_id <= 0) {
+            echo "<script>alert('Nama Produk, Gambar, Harga, Stok, Penjual, dan Kategori wajib diisi dengan benar.'); window.history.back();</script>";
             exit;
         }
 
         if ($action == 'add') {
-            $sql = "INSERT INTO products (name, img, scientific_name, family, description, habitat, care_instructions, unique_fact, price, stock, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO products (name, img, scientific_name, family, description, habitat, care_instructions, unique_fact, price, stock, seller_id, category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // Correctly using category_id
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "ssssssssddi", $name, $img_path, $scientific_name, $family, $description, $habitat, $care_instructions, $unique_fact, $price, $stock, $seller_id);
+            if (!$stmt) {
+                error_log("Error preparing add product statement: " . mysqli_error($conn));
+                echo "<script>alert('Terjadi kesalahan sistem saat menyiapkan penambahan produk. Mohon coba lagi.'); window.history.back();</script>";
+                exit;
+            }
+            mysqli_stmt_bind_param($stmt, "ssssssssddii", $name, $img_path, $scientific_name, $family, $description, $habitat, $care_instructions, $unique_fact, $price, $stock, $seller_id_assigned, $category_id); // 'i' for category_id
         } else { // action == 'edit'
-            $sql = "UPDATE products SET name = ?, img = ?, scientific_name = ?, family = ?, description = ?, habitat = ?, care_instructions = ?, unique_fact = ?, price = ?, stock = ?, seller_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+            // Correctly using category_id and ensuring product_id
+            $sql = "UPDATE products SET name = ?, img = ?, scientific_name = ?, family = ?, description = ?, habitat = ?, care_instructions = ?, unique_fact = ?, price = ?, stock = ?, seller_id = ?, category_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"; // Correctly using category_id
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "ssssssssddii", $name, $img_path, $scientific_name, $family, $description, $habitat, $care_instructions, $unique_fact, $price, $stock, $seller_id, $product_id);
+            if (!$stmt) {
+                error_log("Error preparing edit product statement: " . mysqli_error($conn));
+                echo "<script>alert('Terjadi kesalahan sistem saat menyiapkan pengeditan produk. Mohon coba lagi.'); window.history.back();</script>";
+                exit;
+            }
+            // ssssssssdiisi (9 strings, 1 double, 3 integers for price, stock, seller_id, category_id, product_id)
+            mysqli_stmt_bind_param($stmt, "ssssssssdiisi", $name, $img_path, $scientific_name, $family, $description, $habitat, $care_instructions, $unique_fact, $price, $stock, $seller_id_assigned, $category_id, $product_id);
         }
         
         if (mysqli_stmt_execute($stmt)) {
@@ -127,7 +150,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit;
         } else {
             error_log("Error inserting/updating product in admin/products.php: " . mysqli_stmt_error($stmt));
-            echo "<script>alert('Terjadi kesalahan saat menyimpan produk ke database. Mohon coba lagi atau hubungi administrator.'); window.history.back();</script>";
+            echo "<script>alert('Terjadi kesalahan saat menyimpan produk ke database. Detail: " . mysqli_stmt_error($stmt) . " Mohon coba lagi atau hubungi administrator.'); window.history.back();</script>";
             exit;
         }
 
@@ -135,7 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif ($action == 'delete') {
         $product_id = intval($_POST['product_id']);
         // Fetch image path before deleting to unlink the file
-        $upload_dir = '/PlantPals/assets/uploads/'; // Definisi di sini juga
+        $upload_dir = '/PlantPals/assets/uploads/';
         $stmt_img = mysqli_prepare($conn, "SELECT img FROM products WHERE id = ?");
         if ($stmt_img) {
             mysqli_stmt_bind_param($stmt_img, "i", $product_id);
@@ -169,8 +192,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Fetch all products for display (after any modifications)
+// NEW: Include category name in fetch
 $products = [];
-$sql = "SELECT p.*, u.username as seller_username FROM products p LEFT JOIN users u ON p.seller_id = u.id ORDER BY p.id DESC";
+$sql = "SELECT p.*, u.username as seller_username, c.name as category_name FROM products p LEFT JOIN users u ON p.seller_id = u.id LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC";
 $result = mysqli_query($conn, $sql);
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
@@ -180,23 +204,14 @@ if ($result) {
 
 mysqli_close($conn);
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Produk Admin - PlantPals</title>
-    <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
-    <link rel="stylesheet" href="/PlantPals/css/admin_seller_styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> </head>
-<body>
-    <?php include ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
+<?php require_once ROOT_PATH . 'includes' . DIRECTORY_SEPARATOR . 'header.php'; ?>
 
     <h1>Manajemen Produk</h1>
 
     <div class="product-form-container card-panel">
         <h2><?php echo $product_to_edit ? '<i class="fas fa-edit"></i> Edit Produk' : '<i class="fas fa-plus-circle"></i> Tambah Produk Baru'; ?></h2>
-        <form action="products.php" method="post" enctype="multipart/form-data"> <input type="hidden" name="action" value="<?php echo $product_to_edit ? 'edit' : 'add'; ?>">
+        <form action="products.php" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="<?php echo $product_to_edit ? 'edit' : 'add'; ?>">
             <input type="hidden" name="product_id" value="<?php echo $product_to_edit ? htmlspecialchars($product_to_edit['id']) : ''; ?>">
 
             <div class="form-group">
@@ -209,7 +224,7 @@ mysqli_close($conn);
                 <input type="file" id="product_image" name="product_image" accept="image/*">
                 <?php if ($product_to_edit && $product_to_edit['img']): ?>
                     <small>Gambar saat ini: <a href="<?php echo htmlspecialchars($product_to_edit['img']); ?>" target="_blank"><?php echo htmlspecialchars(basename($product_to_edit['img'])); ?></a></small><br>
-                    <img src="<?php echo htmlspecialchars($product_to_edit['img']); ?>" alt="Gambar Saat Ini" style="max-width: 100px; max-height: 100px; object-fit: cover; margin-top: 10px; border-radius: 5px;">
+                    <img src="<?php echo htmlspecialchars($product_to_edit['img']); ?>" alt="Gambar Saat Ini" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 5px;">
                     <input type="hidden" name="current_img_path" value="<?php echo htmlspecialchars($product_to_edit['img']); ?>">
                 <?php endif; ?>
                 <small>Format: JPG, JPEG, PNG, GIF. Maksimal 5MB.</small>
@@ -254,14 +269,14 @@ mysqli_close($conn);
                 <label for="stock"><i class="fas fa-cubes"></i> Stok:</label>
                 <input type="number" id="stock" name="stock" value="<?php echo htmlspecialchars($product_to_edit['stock'] ?? ''); ?>" required min="0">
             </div>
-
+            
             <div class="form-group">
-                <label for="seller_id"><i class="fas fa-store"></i> Penjual:</label>
-                <select id="seller_id" name="seller_id" required>
-                    <option value="">Pilih Penjual</option>
-                    <?php foreach($sellers as $seller): ?>
-                        <option value="<?php echo htmlspecialchars($seller['id']); ?>" <?php echo ($product_to_edit && $product_to_edit['seller_id'] == $seller['id']) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($seller['username']); ?>
+                <label for="category_id"><i class="fas fa-folder"></i> Kategori:</label>
+                <select id="category_id" name="category_id" required>
+                    <option value="">Pilih Kategori</option>
+                    <?php foreach($categories as $category): ?>
+                        <option value="<?php echo htmlspecialchars($category['id']); ?>" <?php echo ($product_to_edit && $product_to_edit['category_id'] == $category['id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($category['name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -277,7 +292,7 @@ mysqli_close($conn);
     </div>
 
     <div class="section-header">
-        <h2>Daftar Produk</h2>
+        <h2>Daftar Produk Anda</h2>
         <a href="products.php" class="add-new-btn"><i class="fas fa-plus"></i> Tambah Produk Baru</a>
     </div>
     <table class="data-table">
@@ -286,24 +301,24 @@ mysqli_close($conn);
                 <th>ID</th>
                 <th>Gambar</th>
                 <th>Nama</th>
+                <th>Kategori</th>
                 <th>Harga</th>
                 <th>Stok</th>
-                <th>Penjual</th>
                 <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($products)): ?>
-                <tr><td colspan="7">Belum ada produk dalam database.</td></tr>
+                <tr><td colspan="7">Anda belum memiliki produk.</td></tr>
             <?php else: ?>
                 <?php foreach ($products as $product): ?>
                 <tr>
                     <td><?php echo htmlspecialchars($product['id']); ?></td>
                     <td><img src="<?php echo htmlspecialchars($product['img']); ?>" alt="Gambar <?php echo htmlspecialchars($product['name']); ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;"></td>
                     <td><?php echo htmlspecialchars($product['name']); ?></td>
+                    <td><?php echo htmlspecialchars($product['category_name'] ?? 'N/A'); ?></td>
                     <td>Rp <?php echo number_format($product['price'], 0, ',', '.'); ?></td>
                     <td><?php echo htmlspecialchars($product['stock']); ?></td>
-                    <td><?php echo htmlspecialchars($product['seller_username'] ?? 'N/A'); ?></td>
                     <td class="action-buttons">
                         <a href="products.php?edit_id=<?php echo htmlspecialchars($product['id']); ?>" class="edit-btn"><i class="fas fa-edit"></i> Edit</a>
                         <form action="products.php" method="post" style="display:inline-block;">

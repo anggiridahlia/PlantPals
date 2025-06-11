@@ -7,6 +7,7 @@
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); /* Pertahankan bayangan untuk efek visual yang bagus */
     overflow: hidden; /* Penting untuk border-radius */
+    border: 1px solid #888;
 }
 
 .sidebar {
@@ -29,16 +30,30 @@
     display: flex; /* For icon alignment */
     align-items: center;
     gap: 10px; /* Space between icon and text */
+    position: relative; /* For notification badge */
 }
 
 .sidebar a:hover,
 .sidebar a.active {
     background-color: #e6f7e6;
-    border-left-color: #E5989B;
-    color: #E5989B;
+    border-left-color: #D60050; /* Changed to D60050 for consistency */
+    color: #D60050; /* Changed to D60050 for consistency */
 }
 .sidebar a i {
     font-size: 1.1em;
+}
+/* Notification badge style */
+.sidebar a .badge {
+    background-color: #D60050; /* Pink/red */
+    color: white;
+    font-size: 0.75em;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    line-height: 1;
 }
 
 
@@ -63,19 +78,20 @@ header nav {
     margin-bottom: 25px;
     width: 100%; /* Pastikan panel ini mengambil lebar penuh */
     box-sizing: border-box; /* Pastikan padding dihitung dalam lebar */
+    border: 1px solid #ccc;
 }
 
 /* Home Page Specifics */
 .content h2 {
     font-family: 'Montserrat', sans-serif;
     font-size: 2.5rem;
-    color: #E5989B;
+    color: #D60050; /* Solid pink/red */
     text-align: center;
     margin-bottom: 30px;
 }
 /* Tambahan untuk judul section baru */
 .content h2.section-heading {
-    color: #3a5a20; /* Warna hijau tua untuk judul section */
+    color: #000000; /* Changed to Black for consistency */
     font-size: 2rem;
     margin-top: 40px; /* Jarak atas untuk memisahkan section */
     margin-bottom: 25px;
@@ -86,9 +102,52 @@ header nav {
     display: block;
     width: 60px;
     height: 3px;
-    background: #E5989B;
+    background-color: #D60050;
     margin: 15px auto 0;
-    border-radius: 2px;
+    border-radius: 0; /* Changed to 0 for consistency */
+}
+
+
+/* Category Filter Bar */
+.category-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 40px;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border: 1px solid #eee;
+    overflow-x: auto; /* Enable scroll if categories too many */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.category-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+.category-filter-bar .filter-btn {
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+    background-color: #e0e0e0;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex; /* For icon alignment */
+    align-items: center;
+    gap: 5px;
+    border-radius: 0; /* No border-radius */
+    white-space: nowrap; /* Prevent wrapping text within button */
+}
+.category-filter-bar .filter-btn:hover {
+    background-color: #d0d0d0;
+}
+.category-filter-bar .filter-btn.active {
+    background-color: #D60050; /* Active color */
+    color: white;
+    border-color: #D60050;
+    font-weight: 600;
 }
 
 
@@ -99,10 +158,10 @@ header nav {
     max-width: 700px; /* Pertahankan max-width untuk search bar agar tidak terlalu lebar */
     margin-left: auto;
     margin-right: auto;
-    border: 1px solid #c3d9c3;
-    border-radius: 25px;
+    border: 1px solid #555555;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .search-bar input[type="text"] {
@@ -115,7 +174,7 @@ header nav {
 
 .search-bar button {
     padding: 12px 20px;
-    background-color: #E5989B;
+    background-color: #D60050;
     color: white;
     border: none;
     cursor: pointer;
@@ -127,7 +186,7 @@ header nav {
 }
 
 .search-bar button:hover {
-    background-color: rgb(182, 88, 117);
+    background-color: #A60040;
 }
 
 /* Product Grid */
@@ -141,11 +200,11 @@ header nav {
 /* Gaya Kartu Produk (Disamakan dengan store_profile.php) */
 .grid .card,
 .product-list-page .product-item-page { /* pastikan kedua kelas ini pakai gaya yang sama */
-    background-color: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
+    background-color: #FFFFFF;
+    border: 1px solid #888888;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.08); /* Bayangan lebih jelas */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -153,73 +212,98 @@ header nav {
 }
 .grid .card:hover,
 .product-list-page .product-item-page:hover {
-    transform: translateY(-8px); /* Efek melayang lebih dramatis */
-    box-shadow: 0 12px 25px rgba(0,0,0,0.15); /* Bayangan lebih kuat */
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.25);
 }
 .grid .card img,
 .product-list-page .product-item-page img {
     width: 100%;
-    height: 200px; /* Tinggi gambar seragam */
+    height: 200px;
     object-fit: cover;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #ccc;
 }
 .grid .card-content,
 .product-list-page .product-item-page .card-content {
-    padding: 20px; /* Padding konten lebih besar */
+    padding: 20px;
     text-align: left;
-    flex-grow: 1; /* Konten mengisi ruang yang tersedia */
+    flex-grow: 1;
 }
 .grid .card-content h3,
 .product-list-page .product-item-page h4 { /* Sesuaikan untuk h3 di card home, h4 di product list */
-    color: #3a5a20;
+    color: #000000;
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: 1.4rem; /* Ukuran judul produk lebih besar */
+    font-size: 1.4rem;
     line-height: 1.3;
 }
 .grid .card-content p {
-    font-size: 0.95rem; /* Ukuran teks deskripsi lebih kecil */
+    font-size: 0.95rem;
     color: #666;
     margin-bottom: 5px;
 }
+.grid .card-content .category-display { /* Style for category display */
+    font-size: 0.9em;
+    color: #888;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
 .grid .price,
 .product-list-page .product-item-page .price {
-    font-size: 1.3rem; /* Ukuran harga lebih besar */
+    font-size: 1.3rem;
     font-weight: bold;
-    color: #E5989B; /* Warna harga pinkish */
+    color: #D60050;
     margin-bottom: 15px;
-    display: block; /* Pastikan harga di baris baru */
+    display: block;
 }
 
 /* Gaya baru untuk container tombol di kartu produk */
 .card-buttons-container {
-    display: flex; /* Mengatur tombol berdampingan */
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap to next line if needed */
     justify-content: space-between; /* Menjarakkan tombol ke ujung */
     align-items: center;
     gap: 10px; /* Jarak antar tombol */
     padding: 0 20px 20px; /* Padding bawah yang konsisten */
 }
 .card-buttons-container .see-more-btn,
-.card-buttons-container .buy-button {
+.card-buttons-container .buy-button,
+.card-buttons-container .chat-product-btn { /* Added chat-product-btn */
     flex: 1; /* Agar tombol mengisi ruang yang tersedia secara merata */
     width: auto; /* Override width: calc(100% - 40px) */
     margin: 0; /* Hapus margin individu pada tombol */
     padding: 10px 15px; /* Sesuaikan padding agar lebih ringkas */
     font-size: 0.95rem; /* Sesuaikan ukuran font */
+    border-radius: 0;
+    display: flex; /* For icon alignment */
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Gap for icon and text */
 }
 .card-buttons-container .see-more-btn {
-    background-color: #3a5a20; /* Warna hijau untuk lihat detail */
-    color: white; /* Pastikan teks putih */
+    background-color: #333;
+    color: white;
 }
 .card-buttons-container .see-more-btn:hover {
-    background-color: #2f4d3a;
+    background-color: #000;
 }
-.card-buttons-container .buy-button { /* Gaya untuk tombol 'Add' / 'Tambah ke Keranjang' */
-    background-color: #E5989B;
+.card-buttons-container .buy-button {
+    background-color: #D60050;
     color: white;
 }
 .card-buttons-container .buy-button:hover {
-    background-color: rgb(182, 88, 117);
+    background-color: #A60040;
+}
+.card-buttons-container .chat-product-btn { /* Style for Chat Penjual button */
+    background-color: #007BFF; /* Blue color for chat */
+    color: white;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+.card-buttons-container .chat-product-btn:hover {
+    background-color: #0056B3;
 }
 
 
@@ -237,7 +321,8 @@ header nav {
     gap: 10px;
     padding: 0 20px 20px;
 }
-.product-item-page .card-buttons-container .buy-button {
+.product-item-page .card-buttons-container .buy-button,
+.product-item-page .card-buttons-container .chat-product-btn { /* Ensure chat button also gets full width */
     width: 100%; /* Tombol Add/Cart mengisi penuh di halaman produk */
 }
 .product-item-page .card-buttons-container .see-more-btn {
@@ -261,18 +346,18 @@ header nav {
 .product-item-page .store-name-link {
     display: inline-block;
     padding: 5px 10px;
-    background-color: #f0f8ff; /* Light blue/white background */
-    border: 1px solid #c3d9c3; /* Light green border */
-    border-radius: 5px;
+    background-color: #e0e0e0; /* Light gray */
+    border: 1px solid #999;
+    border-radius: 0;
     text-decoration: none;
-    color: #E5989B; /* Pinkish color */
+    color: #333;
     font-weight: 500;
     transition: all 0.3s ease;
     font-size: 0.9em;
 }
 .product-item-page .store-name-link:hover {
-    background-color: #e6f7ff;
-    border-color: #E5989B;
+    background-color: #bbb;
+    border-color: #777;
     transform: translateY(-1px);
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -350,52 +435,52 @@ header nav {
     border-radius: 2px;
 }
 /* Menargetkan form-group di dalam container edit profil */
-.profile-edit-form-container .profile-form-group { /* Menggunakan kelas baru */
-    margin-bottom: 20px !important; /* Paksa margin lebih kecil dari default form-group */
+.profile-edit-form-container .form-group { /* Menggunakan kelas baru */
+    margin-bottom: 20px; /* Paksa margin lebih kecil dari default form-group */
 }
 /* Penargetan spesifik untuk label dan input di dalam form edit profil */
-.profile-edit-form-container .profile-form-label { /* Menggunakan kelas baru */
-    display: flex !important; /* Paksa display flex */
-    align-items: center !important; /* Paksa align items center */
-    gap: 8px !important; /* Paksa gap */
-    font-weight: 600 !important;
-    color: #3a5a20 !important;
-    margin-bottom: 8px !important;
+.profile-edit-form-container .form-group label { /* Menggunakan kelas baru */
+    display: flex; /* Paksa display flex */
+    align-items: center; /* Paksa align items center */
+    gap: 8px; /* Paksa gap */
+    font-weight: 600;
+    color: #3a5a20;
+    margin-bottom: 8px;
 }
-.profile-edit-form-container .profile-form-label i {
-    color: #E5989B !important; /* Paksa ikon form label warna pink */
+.profile-edit-form-container .form-group label i {
+    color: #E5989B; /* Paksa ikon form label warna pink */
 }
-.profile-edit-form-container .profile-form-input,
-.profile-edit-form-container .profile-form-textarea { /* Menggunakan kelas baru */
-    width: 100% !important; /* Paksa lebar 100% */
-    padding: 12px !important; /* Paksa padding */
-    border: 1px solid #ddd !important; /* Paksa border */
-    border-radius: 8px !important; /* Paksa border-radius */
-    font-size: 1rem !important; /* Paksa font-size */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05) !important; /* Paksa shadow */
-    box-sizing: border-box !important; /* Pastikan box-sizing */
+.profile-edit-form-container .form-group input,
+.profile-edit-form-container .form-group textarea,
+.profile-edit-form-container .form-group select { /* NEW: add select */
+    width: 100%; /* Paksa lebar 100% */
+    padding: 12px; /* Paksa padding */
+    border: 1px solid #ddd; /* Paksa border */
+    border-radius: 8px; /* Paksa border-radius */
+    font-size: 1rem; /* Paksa font-size */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Paksa shadow */
+    box-sizing: border-box; /* Pastikan box-sizing */
 }
-.profile-edit-form-container .profile-form-textarea {
-    resize: vertical !important;
-    min-height: 100px !important;
+.profile-edit-form-container .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
 }
-.profile-edit-form-container .profile-form-input:focus,
-.profile-edit-form-container .profile-form-textarea:focus {
-    border-color: #E5989B !important;
-    box-shadow: 0 0 0 3px rgba(229, 152, 155, 0.2) !important;
-    outline: none !important;
+.profile-edit-form-container .form-group input:focus,
+.profile-edit-form-container .form-group textarea:focus,
+.profile-edit-form-container .form-group select:focus { /* NEW: add select */
+    border-color: #E5989B;
+    box-shadow: 0 0 0 3px rgba(229, 152, 155, 0.2);
+    outline: none;
 }
 
-.profile-edit-form-container .profile-form-action-btns { /* Menggunakan kelas baru */
-    border-top: 1px solid #eee !important; /* Paksa border top */
-    margin-top: 30px !important; /* Paksa margin top standar */
-    padding-top: 20px !important; /* Paksa padding top standar */
-    display: flex !important; /* Paksa display flex */
-    justify-content: flex-end !important; /* Paksa justify content */
-    gap: 15px !important; /* Paksa jarak antar tombol */
+.profile-edit-form-container .form-action-btns {
+    border-top: 1px solid #eee;
+    margin-top: 30px;
+    padding-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
 }
-/* Pastikan tombol submit/cancel menggunakan gaya global dari main_styles.css */
-/* submit-btn dan cancel-btn sudah didefinisikan di main_styles.css dan form-action-btns */
 
 
 /* Orders Page Specifics */
@@ -689,7 +774,8 @@ header nav {
         padding: 0 15px 15px; /* Padding lebih ringkas di mobile */
     }
     .card-buttons-container .see-more-btn,
-    .card-buttons-container .buy-button {
+    .card-buttons-container .buy-button,
+    .card-buttons-container .chat-product-btn { /* Added chat-product-btn */
         width: 100%; /* Tombol mengambil lebar penuh di mobile */
         font-size: 0.9rem; /* Ukuran font lebih kecil */
         padding: 8px 12px; /* Padding lebih kecil */
@@ -839,5 +925,317 @@ header nav {
     }
     .contact-form .form-group label {
         justify-content: center;
+    }
+}
+
+/* NEW: Chat Specific Styles (Buyer Dashboard) */
+.messages-page-layout {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    /* Adjusted height to be flexible but prevent overflow */
+    min-height: 500px; /* Minimum height for chat area */
+    max-height: calc(100vh - 200px); /* Max height relative to viewport, adjust as needed */
+}
+.conversation-list-panel {
+    flex-basis: 250px;
+    flex-shrink: 0;
+    max-height: 100%; /* Fill available height within flex container */
+    overflow-y: auto;
+    padding: 20px;
+    background: #FFFFFF;
+    border: 1px solid #ccc;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.conversation-list-panel h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    color: #000;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+.conversation-item {
+    display: flex; /* Changed to flex for better layout */
+    justify-content: space-between; /* Space out username and unread count */
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    text-decoration: none;
+    color: #333;
+    position: relative;
+    margin-bottom: 5px;
+}
+.conversation-item.active {
+    background-color: #f0f0f0 !important; /* Highlight active conversation */
+    border-left: 3px solid #D60050;
+}
+.conversation-item:hover {
+    background-color: #f5f5f5;
+}
+.conversation-item strong {
+    font-size: 1rem;
+    flex-grow: 1; /* Allow username to take space */
+}
+.conversation-item span {
+    font-size: 0.85em;
+    color: #777;
+    float: right;
+}
+.conversation-item .unread-count {
+    background-color: #D60050;
+    color: white;
+    padding: 2px 7px;
+    font-size: 0.75em;
+    border-radius: 50%;
+    margin-left: 10px;
+    flex-shrink: 0; /* Prevent badge from shrinking */
+}
+
+.chat-area-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #FFFFFF;
+    border: 1px solid #ccc;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    min-height: 400px;
+}
+.chat-area-panel h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    color: #000;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+.chat-messages-display {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.chat-message-item {
+    padding: 10px 15px;
+    max-width: 70%;
+    border: 1px solid transparent;
+    word-wrap: break-word;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    min-width: 120px;
+}
+.chat-message-item::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    border: 10px solid transparent;
+}
+
+.chat-message-item.sent {
+    align-self: flex-end;
+    background-color: #D60050;
+    color: white;
+    border-color: #D60050;
+    margin-right: 10px;
+}
+.chat-message-item.sent::before {
+    left: 100%;
+    border-left-color: #D60050;
+}
+
+.chat-message-item.received {
+    align-self: flex-start;
+    background-color: #000000;
+    color: white;
+    border-color: #000000;
+    margin-left: 10px;
+}
+.chat-message-item.received::before {
+    right: 100%;
+    border-right-color: #000000;
+}
+
+.message-sender {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: rgba(255,255,255,0.8);
+}
+.message-content {
+    font-size: 1rem;
+}
+.message-date {
+    font-size: 0.8em;
+    color: rgba(255,255,255,0.6);
+    margin-top: 5px;
+    text-align: right;
+}
+.no-messages {
+    text-align: center;
+    color: #777;
+    font-size: 1.1em;
+    padding: 20px;
+}
+
+/* Style for form inputs within chat panel (send message form) */
+.chat-form-panel { /* This applies to the initial send message form */
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between form groups */
+    max-width: 800px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    padding: 30px;
+    border: 1px solid #ccc;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.chat-form-panel h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.8rem;
+    color: #000;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.chat-form-panel .form-group {
+    margin-bottom: 0; /* Remove default margin from form-group */
+}
+.chat-form-panel label {
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+    color: #333;
+}
+.chat-form-panel select,
+.chat-form-panel input[type="text"],
+.chat-form-panel textarea {
+    padding: 10px;
+    font-size: 0.9rem;
+    border: 1px solid #bbb;
+    width: 100%;
+    box-sizing: border-box;
+}
+.chat-form-panel textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+.chat-form-panel .btn-primary {
+    padding: 10px 20px;
+    font-size: 1rem;
+    margin-top: 10px; /* Space above button */
+    align-self: flex-end; /* Align button to the right */
+}
+
+/* Reply Form Container - for inside chat area */
+.reply-form-container {
+    margin-top: auto; /* Push to bottom of chat area */
+    padding-top: 15px; /* Add padding above the form */
+    border-top: 1px solid #eee; /* Separator line */
+}
+.reply-form-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.reply-form-container textarea {
+    padding: 10px;
+    border: 1px solid #ccc;
+    font-size: 0.95rem;
+    resize: vertical;
+    min-height: 60px;
+    box-sizing: border-box;
+}
+.reply-form-container textarea:focus {
+    border-color: #D60050;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(214,0,80,0.1);
+}
+.reply-form-container .btn-primary { /* Custom btn style for reply button */
+    background-color: #D60050;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    align-self: flex-end;
+    transition: background-color 0.3s ease;
+}
+.reply-form-container .btn-primary:hover {
+    background-color: #A60040;
+}
+
+
+/* Responsive for chat sections */
+@media (max-width: 992px) {
+    .messages-page-layout {
+        flex-direction: column; /* Stack panels vertically */
+        gap: 15px;
+        height: auto; /* Allow height to adjust */
+    }
+    .conversation-list-panel {
+        flex-basis: auto;
+        max-height: 300px; /* Shorter on mobile when stacked */
+        width: 100%;
+    }
+    .chat-area-panel {
+        width: 100%;
+        min-height: 400px; /* Maintain minimum height */
+    }
+    .chat-message-item {
+        max-width: 90%; /* Wider bubbles on small screens */
+    }
+}
+@media (max-width: 576px) {
+    .conversation-list-panel {
+        padding: 15px;
+    }
+    .conversation-list-panel h3 {
+        font-size: 1.3rem;
+    }
+    .conversation-item {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+    }
+    .chat-area-panel {
+        padding: 15px;
+    }
+    .chat-area-panel h3 {
+        font-size: 1.3rem;
+    }
+    .chat-messages-display {
+        padding-right: 5px;
+    }
+    .chat-message-item {
+        font-size: 0.9rem;
+        min-width: unset;
+    }
+    .message-sender, .message-date {
+        font-size: 0.75em;
+    }
+    .reply-form-container textarea {
+        min-height: 50px;
+        font-size: 0.9rem;
+    }
+    .reply-form-container .btn-primary {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    .chat-form-panel { /* For initial message form */
+        padding: 20px;
+    }
+    .chat-form-panel h3 {
+        font-size: 1.5rem;
+    }
+    .chat-form-panel select,
+    .chat-form-panel input[type="text"],
+    .chat-form-panel textarea {
+        font-size: 0.85rem;
+    }
+    .chat-form-panel .btn-primary {
+        font-size: 0.9rem;
+        padding: 8px 15px;
     }
 }

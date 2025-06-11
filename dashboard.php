@@ -25,9 +25,10 @@ require_once 'config.php'; // Database connection, now opened once.
 $popup_message = "";
 $popup_status = ""; // 'success' or 'error'
 
-// --- Fetch Stores from Database and Organize by seller_user_id (moved up) ---
+// --- Fetch Stores from Database and Organize by seller_user_id ---
 $stores_by_seller_id = [];
-$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id, s.followers_count FROM stores s JOIN users u ON s.seller_user_id = u.id WHERE u.role = 'seller' ORDER BY s.name ASC"; // Get followers_count
+// Select store's actual ID (s.id) to pass to chat
+$sql_stores = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id, s.followers_count FROM stores s JOIN users u ON s.seller_user_id = u.id WHERE u.role = 'seller' ORDER BY s.name ASC";
 $result_stores = mysqli_query($conn, $sql_stores);
 if ($result_stores) {
     while ($row_store = mysqli_fetch_assoc($result_stores)) {
@@ -39,9 +40,11 @@ if ($result_stores) {
     }
 }
 // Fallback jika tidak ada toko yang terhubung ke seller di DB
+// Pastikan ID default seller ada di array stores_by_seller_id
 if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
+    // If no stores in DB, manually add a fallback store associated with DEFAULT_FALLBACK_SELLER_ID
     $stores_by_seller_id[$DEFAULT_FALLBACK_SELLER_ID] = [
-        ["id" => 1, "store_id_string" => "toko_bunga_asri", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Raya Puputan No. 100, Denpasar", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID, "followers_count" => 0], // Add followers_count
+        ["id" => 1, "store_id_string" => "toko_bunga_asri_default", "name" => "Toko Bunga Sejuk Asri", "address" => "Jl. Contoh No. 123", "seller_user_id" => $DEFAULT_FALLBACK_SELLER_ID, "followers_count" => 0],
     ];
 }
 
@@ -52,8 +55,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     $quantity = 1;
 
     if ($product_id) {
-        $sql_product = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+        $sql_product = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id, c.name as category_name
                         FROM products p
+                        LEFT JOIN categories c ON p.category_id = c.id
                         WHERE p.id = ?"; 
         
         if ($stmt_product = mysqli_prepare($conn, $sql_product)) {
@@ -64,12 +68,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
             mysqli_stmt_close($stmt_product);
 
             if ($product_details) {
+                // Fetch store details for the product
                 $selling_store_for_cart = null;
+                // Use the already fetched $stores_by_seller_id
                 if (isset($product_details['seller_id']) && isset($stores_by_seller_id[$product_details['seller_id']])) {
                     $selling_store_for_cart = $stores_by_seller_id[$product_details['seller_id']][0] ?? null;
                 }
 
-                $store_id_for_cart = $selling_store_for_cart['store_id_string'] ?? 'N/A';
+                $store_id_for_cart = $selling_store_for_cart['id'] ?? 'N/A'; // Use actual store_id (int) not store_id_string
                 $store_name_for_cart = $selling_store_for_cart['name'] ?? 'Toko Tidak Dikenal';
                 if ($selling_store_for_cart && $selling_store_for_cart['address']) {
                     $store_name_for_cart .= " - (" . htmlspecialchars($selling_store_for_cart['address']) . ")";
@@ -99,9 +105,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
                             'price' => $product_details['price'],
                             'stock' => $product_details['stock'],
                             'seller_id' => $product_details['seller_id'],
-                            'store_id_string' => $store_id_for_cart,
+                            'store_id' => $store_id_for_cart, // Pass actual store_id (int)
                             'store_name' => $store_name_for_cart,
                             'quantity' => $quantity,
+                            'category' => $product_details['category_name'] ?? 'Lain-lain', // Use category_name
                         ];
                         $popup_message = "Produk '" . htmlspecialchars($product_details['name']) . "' berhasil ditambahkan ke keranjang!";
                         $popup_status = "success";
@@ -117,7 +124,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
             $popup_status = "error";
         }
     }
-    // Redirect after POST to prevent resubmission
     header('Location: dashboard.php?page=' . $page . '&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
@@ -144,7 +150,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
                 $popup_message = "Kuantitas diperbarui.";
                 $popup_status = "success";
             } else {
-                $_SESSION['cart'][$product_id]['quantity'] = $current_db_stock;
+                $_SESSION['cart'][$product_id]['quantity'] = $current_db_stock; // Set to max available stock
                 $popup_message = "Stok tidak mencukupi untuk kuantitas yang diminta. Kuantitas diatur ke: " . $current_db_stock . ".";
                 $popup_status = "error";
             }
@@ -243,7 +249,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
                                 mysqli_stmt_bind_param($stmt_return_stock, "ii", $new_stock_value, $product_id_returned);
                                 if (!mysqli_stmt_execute($stmt_return_stock)) {
                                     $cancel_success = false;
-                                    error_log("Error returning stock for product " . $product_id_returned . ": " . mysqli_stmt_error($stmt_return_stock));
+                                    error_log("Error returning stock for product " . mysqli_stmt_error($stmt_return_stock));
                                     break;
                                 }
                                 mysqli_stmt_close($stmt_return_stock);
@@ -299,9 +305,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     $update_success = true;
     $update_errors = [];
 
+    // Basic validation
     if (empty($full_name_form)) { $update_errors[] = "Nama Lengkap tidak boleh kosong."; }
     if (empty($email_form) || !filter_var($email_form, FILTER_VALIDATE_EMAIL)) { $update_errors[] = "Format Email tidak valid."; }
+    // Phone and address can be empty
 
+    // Check if email already exists for another user
     if (empty($update_errors)) {
         $sql_check_email = "SELECT id FROM users WHERE email = ? AND id != ?";
         if ($stmt_check_email = mysqli_prepare($conn, $sql_check_email)) {
@@ -328,7 +337,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
             if (mysqli_stmt_execute($stmt_update_profile)) {
                 $popup_message = "Profil Anda berhasil diperbarui!";
                 $popup_status = "success";
-                $_SESSION['username'] = $full_name_form; 
+                // Update session username (if using full_name as display username)
+                $_SESSION['username'] = $full_name_form;
             } else {
                 $popup_message = "Gagal memperbarui profil ke database. " . mysqli_stmt_error($stmt_update_profile);
                 $popup_status = "error";
@@ -345,6 +355,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     exit();
 }
 
+
 // --- Handle Send Message Action (NEW) ---
 if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
     $receiver_id = intval($_POST['receiver_id'] ?? 0); // Seller User ID
@@ -356,7 +367,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
         $popup_message = "Penerima atau isi pesan tidak valid.";
         $popup_status = "error";
     } else {
-        // Basic validation: ensure receiver_id is a seller
         $is_receiver_seller = false;
         $stmt_check_role = mysqli_prepare($conn, "SELECT role FROM users WHERE id = ?");
         if ($stmt_check_role) {
@@ -378,8 +388,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
         } else {
             $sql_insert_message = "INSERT INTO messages (sender_id, receiver_id, store_id, subject, message) VALUES (?, ?, ?, ?, ?)";
             if ($stmt_insert_message = mysqli_prepare($conn, $sql_insert_message)) {
-                // If store_id_msg is 0 or not set, it should be NULL in DB
-                $store_id_param = ($store_id_msg > 0) ? $store_id_msg : NULL; 
+                $store_id_param = ($store_id_msg > 0) ? $store_id_msg : NULL;
                 mysqli_stmt_bind_param($stmt_insert_message, "iiiss", $user_id, $receiver_id, $store_id_param, $subject, $message_content);
                 if (mysqli_stmt_execute($stmt_insert_message)) {
                     $popup_message = "Pesan berhasil dikirim!";
@@ -404,33 +413,83 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
 
 // --- Fetch Products from Database for all pages ---
 $flowers_from_db = [];
-$sql_products_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
+// NEW: Select 'category_name' from products joined with categories
+$sql_products_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id, c.name as category_name
                  FROM products p
                  LEFT JOIN users u ON p.seller_id = u.id
+                 LEFT JOIN categories c ON p.category_id = c.id
                  WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
                  ORDER BY p.name ASC";
 $result_products_all = mysqli_query($conn, $sql_products_all);
 if ($result_products_all) {
     while ($row = mysqli_fetch_assoc($result_products_all)) {
+        // If product from DB has no category_name (category_id is NULL or invalid), assign 'Lain-lain'
+        if (empty($row['category_name'])) {
+            $row['category_name'] = 'Lain-lain';
+        }
         $flowers_from_db[] = $row;
     }
 }
-$flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
+
+// Fallback for initial data from data.php if no products in DB
+// Ensure fallback products also have category_name for display and filtering
+$flowers_to_display = [];
+if (empty($flowers_from_db)) {
+    // Populate with data from data.php and ensure 'category_name' is set
+    foreach ($all_initial_products as $p_fallback) {
+        $p_fallback['category_name'] = 'Lain-lain'; // Default if not found
+        // Attempt to map based on 'category_id' from data.php if it exists
+        // This requires 'data.php' to have 'category_id' in its arrays
+        if (isset($p_fallback['category_id'])) {
+            $found_category_name = null;
+            $stmt_get_cat_name = mysqli_prepare($conn, "SELECT name FROM categories WHERE id = ?");
+            if ($stmt_get_cat_name) {
+                mysqli_stmt_bind_param($stmt_get_cat_name, "i", $p_fallback['category_id']);
+                mysqli_stmt_execute($stmt_get_cat_name);
+                mysqli_stmt_bind_result($stmt_get_cat_name, $cat_name);
+                if (mysqli_stmt_fetch($stmt_get_cat_name)) {
+                    $found_category_name = $cat_name;
+                }
+                mysqli_stmt_close($stmt_get_cat_name);
+            }
+            if ($found_category_name) {
+                $p_fallback['category_name'] = $found_category_name;
+            }
+        }
+        $flowers_to_display[] = $p_fallback;
+    }
+} else {
+    $flowers_to_display = $flowers_from_db;
+}
 
 
 // --- Fetch Featured Products (Only for home page) ---
 $featured_products = [];
 if ($page == 'home') { // Only fetch if on home page
-    $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
+    $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id, c.name as category_name
                      FROM products p
                      LEFT JOIN users u ON p.seller_id = u.id
+                     LEFT JOIN categories c ON p.category_id = c.id
                      WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
                      ORDER BY RAND() LIMIT 4";
     $result_featured = mysqli_query($conn, $sql_featured);
     if ($result_featured) {
         while ($row = mysqli_fetch_assoc($result_featured)) {
+            if (empty($row['category_name'])) {
+                $row['category_name'] = 'Lain-lain';
+            }
             $featured_products[] = $row;
         }
+    }
+}
+
+// NEW: Get all unique categories for filtering
+$all_categories = [];
+$sql_all_categories = "SELECT name FROM categories ORDER BY name ASC";
+$result_all_categories = mysqli_query($conn, $sql_all_categories);
+if ($result_all_categories) {
+    while ($row_cat = mysqli_fetch_assoc($result_all_categories)) {
+        $all_categories[] = $row_cat['name'];
     }
 }
 
@@ -440,6 +499,33 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     $popup_message = urldecode($_GET['popup_message']);
     $popup_status = urldecode($_GET['popup_status']);
 }
+
+// NEW: Fetch number of followed stores for profile page
+$total_followed_stores = 0;
+if ($page == 'profile') {
+    $sql_followed_stores = "SELECT COUNT(id) FROM store_followers WHERE user_id = ?";
+    if ($stmt_followed = mysqli_prepare($conn, $sql_followed_stores)) {
+        mysqli_stmt_bind_param($stmt_followed, "i", $user_id);
+        mysqli_stmt_execute($stmt_followed);
+        mysqli_stmt_bind_result($stmt_followed, $count_followed);
+        mysqli_stmt_fetch($stmt_followed);
+        $total_followed_stores = $count_followed;
+        mysqli_stmt_close($stmt_followed);
+    }
+}
+
+// NEW: Fetch unread messages count for sidebar badge
+$unread_messages_count = 0;
+$sql_unread = "SELECT COUNT(id) FROM messages WHERE receiver_id = ? AND is_read = 0";
+if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
+    mysqli_stmt_bind_param($stmt_unread, "i", $user_id);
+    mysqli_stmt_execute($stmt_unread);
+    mysqli_stmt_bind_result($stmt_unread, $count_unread);
+    mysqli_stmt_fetch($stmt_unread);
+    $unread_messages_count = $count_unread;
+    mysqli_stmt_close($stmt_unread);
+}
+
 
 // All DB queries are now before HTML output.
 // mysqli_close($conn) will be at the very end of the file.
@@ -453,592 +539,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/dashboard_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Gaya khusus untuk keranjang belanja */
-        .cart-item {
-            display: flex;
-            align-items: center;
-            border: 1px solid #e0e0e0;
-            border-radius: 0;
-            padding: 15px;
-            margin-bottom: 15px;
-            background-color: #fcfcfc;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .cart-item img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 0;
-            margin-right: 20px;
-        }
-        .cart-item-details {
-            flex-grow: 1;
-            text-align: left;
-        }
-        .cart-item-details h4 {
-            margin-top: 0;
-            margin-bottom: 5px;
-            color: #3a5a20;
-            font-size: 1.2rem;
-        }
-        .cart-item-details .price {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #D60050;
-            margin-bottom: 10px;
-        }
-        .cart-item-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .cart-item-actions input[type="number"] {
-            width: 70px;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 0;
-            text-align: center;
-            font-size: 1rem;
-        }
-        .cart-item-actions .remove-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 0;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-size: 0.9em;
-        }
-        .cart-item-actions .remove-btn:hover {
-            background-color: #c82333;
-        }
-        .cart-summary {
-            margin-top: 30px;
-            border-top: 2px solid #e0e0e0;
-            padding-top: 20px;
-            text-align: right;
-        }
-        .cart-summary p {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #3a5a20;
-            margin-bottom: 20px;
-        }
-        .cart-summary .checkout-btn {
-            background-color: #000;
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .cart-summary .checkout-btn:hover {
-            background-color: #333;
-        }
-        .empty-cart-message {
-            text-align: center;
-            color: #777;
-            font-size: 1.1em;
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 0;
-            border: 1px dashed #bbb;
-        }
-
-        /* Gaya untuk tombol "Lihat Detail" dan "Tambah ke Keranjang" */
-        .card-buttons-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 0 20px 20px;
-        }
-        .card-buttons-container .see-more-btn,
-        .card-buttons-container .buy-button {
-            flex: 1;
-            width: auto;
-            margin: 0;
-            padding: 10px 15px;
-            font-size: 0.95rem;
-            border-radius: 0;
-        }
-        .card-buttons-container .see-more-btn {
-            background-color: #333;
-            color: white;
-        }
-        .card-buttons-container .see-more-btn:hover {
-            background-color: #000;
-        }
-        .card-buttons-container .buy-button {
-            background-color: #D60050;
-            color: white;
-        }
-        .card-buttons-container .buy-button:hover {
-            background-color: #A60040;
-        }
-
-        /* Penyesuaian untuk product-item-page di halaman products.php */
-        .product-list-page {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            padding: 0 20px;
-            width: 100%;
-        }
-        .product-list-page .product-item-page .card-buttons-container {
-            flex-direction: column;
-            gap: 10px;
-            padding: 0 20px 20px;
-        }
-        .product-list-page .product-item-page .card-buttons-container .buy-button {
-             width: 100%;
-        }
-        .product-list-page .product-item-page .card-buttons-container .see-more-btn {
-            width: 100%;
-        }
-
-
-        /* Gaya baru untuk Banner Promosi */
-        .promo-banner {
-            background-color: #e0e0e0;
-            border-radius: 0;
-            padding: 30px;
-            margin-bottom: 40px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .promo-banner h3 {
-            font-size: 2.2rem;
-            color: #000;
-            margin-bottom: 15px;
-        }
-        .promo-banner p {
-            font-size: 1.1rem;
-            color: #555;
-            margin-bottom: 25px;
-        }
-        .promo-banner .btn-promo {
-            background-color: #D60050;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 0;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-promo:hover {
-            background-color: #A60040;
-        }
-
-        /* Gaya baru untuk Produk Unggulan */
-        .featured-products-section {
-            margin-bottom: 40px;
-        }
-        .featured-products-section .section-heading {
-            font-size: 2rem;
-            color: #000;
-            text-align: center;
-            margin-bottom: 30px;
-            position: relative;
-        }
-        .featured-products-section .section-heading::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 3px;
-            background-color: #D60050;
-            margin: 15px auto 0;
-            border-radius: 0;
-        }
-        .featured-products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-        }
-        .featured-item.card {
-            text-align: left;
-        }
-        .featured-item.card .card-content {
-            padding-bottom: 0;
-        }
-        .featured-item.card .card-buttons-container {
-             padding-top: 15px;
-        }
-
-        /* Gaya Pop-up Notifikasi */
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
-        }
-        .popup-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .popup-box {
-            background: #FFFFFF;
-            padding: 40px;
-            border-radius: 0;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-            transform: translateY(-30px) scale(0.95);
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 2px solid #D60050;
-        }
-        .popup-overlay.active .popup-box {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-        .popup-box .icon {
-            font-size: 4.5rem;
-            margin-bottom: 25px;
-            display: block;
-            line-height: 1;
-        }
-        .popup-box .icon.success {
-            color: #28A745;
-            text-shadow: none;
-        }
-        .popup-box .icon.error {
-            color: #DC3545;
-            text-shadow: none;
-        }
-        .popup-box h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 2rem;
-            color: #000000;
-            margin-bottom: 15px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        .popup-box p {
-            font-size: 1.15rem;
-            color: #666;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        .popup-box .close-btn {
-            background-color: #000000;
-            color: white;
-            padding: 15px 35px;
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .popup-box .close-btn:hover {
-            background-color: #333333;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-        }
-
-        /* Responsive untuk pop-up */
-        @media (max-width: 480px) {
-            .popup-box {
-                padding: 25px;
-            }
-            .popup-box .icon {
-                font-size: 4rem;
-                margin-bottom: 20px;
-            }
-            .popup-box h3 {
-                font-size: 1.7rem;
-                margin-bottom: 10px;
-            }
-            .popup-box p {
-                font-size: 1.05rem;
-                margin-bottom: 20px;
-            }
-            .popup-box .close-btn {
-                padding: 12px 30px;
-                font-size: 1rem;
-            }
-        }
-
-        /* Gaya untuk tombol Batalkan Pesanan */
-        .cancel-order-btn {
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-left: 10px;
-        }
-        .cancel-order-btn:hover {
-            background-color: #c82333;
-        }
-        .order-summary-footer .status-badge {
-            margin-right: 0;
-        }
-        @media (max-width: 768px) {
-            .order-summary-footer .status-badge + .cancel-order-btn {
-                margin-left: 0;
-                margin-top: 10px;
-            }
-        }
-
-        /* NEW: Chat Specific Styles (Buyer Dashboard) */
-        .messages-page-layout {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .conversation-list-panel {
-            flex-basis: 250px; /* Lebar panel kiri */
-            flex-shrink: 0;
-            max-height: 700px; /* Tinggi maksimum untuk scroll */
-            overflow-y: auto;
-            padding: 20px;
-            background: #FFFFFF;
-            border: 1px solid #ccc;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .conversation-list-panel h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 1.5rem;
-            color: #000;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        .conversation-item {
-            display: block;
-            padding: 10px 15px;
-            background-color: #fff;
-            border: 1px solid #eee;
-            text-decoration: none;
-            color: #333;
-            position: relative;
-            margin-bottom: 5px;
-        }
-        .conversation-item.active {
-            background-color: #f0f0f0 !important; /* Highlight active conversation */
-            border-left: 3px solid #D60050;
-        }
-        .conversation-item:hover {
-            background-color: #f5f5f5;
-        }
-        .conversation-item strong {
-            font-size: 1rem;
-        }
-        .conversation-item span {
-            font-size: 0.85em;
-            color: #777;
-            float: right;
-        }
-        .conversation-item .unread-count {
-            background-color: #D60050;
-            color: white;
-            padding: 2px 7px;
-            font-size: 0.75em;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-
-        .chat-area-panel {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            background: #FFFFFF;
-            border: 1px solid #ccc;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .chat-area-panel h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 1.5rem;
-            color: #000;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        .chat-messages-display {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-right: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px; /* Gap between message bubbles */
-        }
-        .chat-message-item {
-            padding: 10px 15px;
-            max-width: 70%; /* Limit message bubble width */
-            border: 1px solid transparent; /* default border */
-            word-wrap: break-word; /* Ensure long words break */
-            position: relative; /* For triangle pointer */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow for bubbles */
-            min-width: 120px; /* Ensure bubble is not too small */
-        }
-        /* Triangle pointer for chat bubbles */
-        .chat-message-item::before {
-            content: '';
-            position: absolute;
-            top: 10px;
-            border: 10px solid transparent;
-        }
-
-        .chat-message-item.sent {
-            align-self: flex-end;
-            background-color: #D60050; /* Sent messages are pink */
-            color: white;
-            border-color: #D60050;
-            margin-right: 10px; /* Space from edge */
-        }
-        .chat-message-item.sent::before {
-            left: 100%; /* Position on the right */
-            border-left-color: #D60050; /* Color matches bubble */
-        }
-
-        .chat-message-item.received {
-            align-self: flex-start;
-            background-color: #000000; /* Received messages are black */
-            color: white;
-            border-color: #000000;
-            margin-left: 10px; /* Space from edge */
-        }
-        .chat-message-item.received::before {
-            right: 100%; /* Position on the left */
-            border-right-color: #000000; /* Color matches bubble */
-        }
-
-        .message-sender {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            color: rgba(255,255,255,0.8);
-        }
-        .chat-message-item.sent .message-sender {
-             color: rgba(255,255,255,0.8);
-        }
-        .message-content {
-            font-size: 1rem;
-        }
-        .message-date {
-            font-size: 0.8em;
-            color: rgba(255,255,255,0.6);
-            margin-top: 5px;
-            text-align: right;
-        }
-        .no-messages {
-            text-align: center;
-            color: #777;
-            font-size: 1.1em;
-            padding: 20px;
-        }
-
-        /* Style for form inputs within chat panel (send message form) */
-        .reply-form-container form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .reply-form-container textarea {
-            padding: 10px;
-            border: 1px solid #ccc;
-            font-size: 0.95rem;
-            resize: vertical;
-            min-height: 60px; /* Adjusted min height */
-            box-sizing: border-box;
-        }
-        .reply-form-container textarea:focus {
-            border-color: #D60050;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(214,0,80,0.1);
-        }
-        .reply-form-container .btn {
-            background-color: #D60050; /* Solid pink */
-            color: white;
-            padding: 8px 15px; /* Smaller padding */
-            border: none;
-            cursor: pointer;
-            font-size: 0.95rem; /* Smaller font */
-            align-self: flex-end; /* Align to right */
-        }
-        .reply-form-container .btn:hover {
-            background-color: #A60040;
-        }
-
-        /* Responsive */
-        @media (max-width: 992px) {
-            .messages-page-layout {
-                flex-direction: column;
-                gap: 15px;
-            }
-            .conversation-list-panel {
-                flex-basis: auto;
-                max-height: 300px; /* Shorter on mobile */
-            }
-            .chat-message-item {
-                max-width: 90%; /* Wider bubbles on small screens */
-            }
-        }
-        @media (max-width: 576px) {
-            .conversation-list-panel {
-                padding: 15px;
-            }
-            .conversation-list-panel h3 {
-                font-size: 1.3rem;
-            }
-            .conversation-item {
-                padding: 8px 12px;
-                font-size: 0.95rem;
-            }
-            .chat-area-panel {
-                padding: 15px;
-            }
-            .chat-area-panel h3 {
-                font-size: 1.3rem;
-            }
-            .chat-message-item {
-                font-size: 0.9rem;
-            }
-            .message-sender, .message-date {
-                font-size: 0.75em;
-            }
-            .reply-form-container textarea {
-                min-height: 50px;
-                font-size: 0.9rem;
-            }
-            .reply-form-container .btn {
-                padding: 6px 12px;
-                font-size: 0.85rem;
-            }
-        }
-
-    </style>
 </head>
 <body>
     <header>
@@ -1054,87 +554,32 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             <a href="dashboard.php?page=products" class="<?php echo ($page == 'products') ? 'active' : ''; ?>"><i class="fas fa-seedling"></i> Produk</a>
             <a href="dashboard.php?page=cart" class="<?php echo ($page == 'cart') ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Keranjang (<?php echo count($_SESSION['cart']); ?>)</a>
             <a href="dashboard.php?page=orders" class="<?php echo ($page == 'orders') ? 'active' : ''; ?>"><i class="fas fa-box-open"></i> Pesanan Saya</a>
-            <a href="dashboard.php?page=chat" class="<?php echo ($page == 'chat') ? 'active' : ''; ?>"><i class="fas fa-comments"></i> Pesan Saya</a>
+            <a href="dashboard.php?page=chat" class="<?php echo ($page == 'chat') ? 'active' : ''; ?>"><i class="fas fa-comments"></i> Pesan Saya <?php if ($unread_messages_count > 0): ?><span class="badge"><?php echo $unread_messages_count; ?></span><?php endif; ?></a>
             <a href="dashboard.php?page=profile" class="<?php echo ($page == 'profile') ? 'active' : ''; ?>"><i class="fas fa-user-circle"></i> Profil</a>
             <a href="/PlantPals/dashboard.php?page=contact" class="<?php echo ($page == 'contact') ? 'active' : ''; ?>"><i class="fas fa-envelope"></i> Kontak</a>
         </nav>
 
         <main class="content">
             <?php
-            // Fetch Products from Database for all pages (moved here to avoid re-fetching in each block)
-            $flowers_from_db = [];
-            $sql_products_all = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
-                             FROM products p
-                             LEFT JOIN users u ON p.seller_id = u.id
-                             WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                             ORDER BY p.name ASC";
-            $result_products_all = mysqli_query($conn, $sql_products_all);
-            if ($result_products_all) {
-                while ($row = mysqli_fetch_assoc($result_products_all)) {
-                    $flowers_from_db[] = $row;
-                }
-            }
-            $flowers_to_display = empty($flowers_from_db) ? $all_initial_products : $flowers_from_db;
-
-            // Fetch Featured Products (Only for home page)
-            $featured_products = [];
-            if ($page == 'home') { // Only fetch if on home page
-                $sql_featured = "SELECT p.id, p.name, p.img, p.price, p.description, p.seller_id
-                                 FROM products p
-                                 LEFT JOIN users u ON p.seller_id = u.id
-                                 WHERE p.seller_id IS NOT NULL AND u.role = 'seller' AND p.stock > 0
-                                 ORDER BY RAND() LIMIT 4";
-                $result_featured = mysqli_query($conn, $sql_featured);
-                if ($result_featured) {
-                    while ($row = mysqli_fetch_assoc($result_featured)) {
-                        $featured_products[] = $row;
-                    }
-                }
-            }
-
             if ($page == 'home') {
                 ?>
                 <h2>Selamat Datang di PlantPals!</h2>
                 <form class="search-bar" action="dashboard.php" method="get">
                     <input type="hidden" name="page" value="home" />
-                    <input type="text" id="searchInput" name="q" placeholder="Cari tanaman hias atau kebutuhan kebun..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>" />
+                    <input type="text" id="searchInput" name="q" placeholder="Cari tanaman, alat, atau pupuk..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>" />
                     <button type="submit">
                         <i class="fas fa-search"></i>
                     </button>
                 </form>
 
-                <div class="promo-banner">
-                    <h3>Diskon Spesial!</h3>
-                    <p>Dapatkan Potongan Harga 20% untuk semua tanaman hias di bulan ini! Waktu Terbatas!</p>
-                    <a href="dashboard.php?page=products" class="btn-promo"><i class="fas fa-tags"></i> Lihat Promosi Sekarang</a>
+                <div class="category-filter-bar">
+                    <button class="filter-btn active" data-category="all"><i class="fas fa-layer-group"></i> Semua</button>
+                    <?php foreach ($all_categories as $cat): ?>
+                        <button class="filter-btn" data-category="<?php echo htmlspecialchars($cat); ?>"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat); ?></button>
+                    <?php endforeach; ?>
                 </div>
 
-                <?php if (!empty($featured_products)): ?>
-                <div class="featured-products-section">
-                    <h2 class="section-heading">Produk Unggulan Pilihan Kami</h2>
-                    <div class="featured-products-grid grid"> <?php foreach ($featured_products as $f_product): ?>
-                            <div class="featured-item card">
-                                <img src="<?php echo htmlspecialchars($f_product['img']); ?>" alt="<?php echo htmlspecialchars($f_product['name']); ?>" />
-                                <div class="card-content">
-                                    <h3><?php echo htmlspecialchars($f_product['name']); ?></h3>
-                                    <p><?php echo htmlspecialchars(substr($f_product['description'] ?? '', 0, 70)); ?>...</p>
-                                    <p class="price">Rp <?php echo number_format($f_product['price'], 0, ',', '.'); ?></p>
-                                </div>
-                                <div class="card-buttons-container">
-                                    <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $f_product['name']))); ?>" class="see-more-btn"><i class="fas fa-info-circle"></i> Detail</a>
-                                    <form action="dashboard.php" method="post" style="margin:0;">
-                                        <input type="hidden" name="action" value="add_to_cart">
-                                        <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($f_product['id']); ?>">
-                                        <button type="submit" class="buy-button"><i class="fas fa-cart-plus"></i> Add</button>
-                                    </form>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <h2 class="section-heading">Semua Produk</h2> <div id="flowerGrid" class="grid">
+                <div id="flowerGrid" class="grid">
                 <?php
                 $filtered_flowers_for_display = [];
                 $keyword = isset($_GET['q']) ? strtolower(trim($_GET['q'])) : '';
@@ -1145,7 +590,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             stripos($flower['name'], $keyword) !== false ||
                             stripos($flower['description'] ?? '', $keyword) !== false ||
                             stripos($flower['scientific_name'] ?? $flower['scientific'] ?? '', $keyword) !== false ||
-                            stripos($flower['family'] ?? '', $keyword) !== false
+                            stripos($flower['family'] ?? '', $keyword) !== false ||
+                            stripos($flower['category_name'] ?? '', $keyword) !== false
                         ) {
                             $filtered_flowers_for_display[] = $flower;
                         }
@@ -1157,20 +603,56 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 if (empty($filtered_flowers_for_display)) {
                     echo "<p class='no-results'>Tidak ada hasil untuk pencarian Anda.</p>";
                 } else {
-                    foreach ($filtered_flowers_for_display as $flower) {
-                        $card_id = htmlspecialchars($flower['id'] ?? 'fallback_' . uniqid());
+                    foreach ($filtered_flowers_for_display as $flower):
+                        $selling_store_home = null;
+                        if (isset($flower['seller_id'])) {
+                            if (!isset($stores_by_seller_id[$flower['seller_id']])) {
+                                $sql_temp_store = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id, s.followers_count FROM stores s WHERE s.seller_user_id = ? LIMIT 1";
+                                if ($stmt_temp_store = mysqli_prepare($conn, $sql_temp_store)) {
+                                    mysqli_stmt_bind_param($stmt_temp_store, "i", $flower['seller_id']);
+                                    mysqli_stmt_execute($stmt_temp_store);
+                                    $result_temp_store = mysqli_stmt_get_result($stmt_temp_store);
+                                    if ($temp_store_data = mysqli_fetch_assoc($result_temp_store)) {
+                                        $stores_by_seller_id[$flower['seller_id']][] = $temp_store_data;
+                                    }
+                                    mysqli_stmt_close($stmt_temp_store);
+                                }
+                            }
+                            if (isset($stores_by_seller_id[$flower['seller_id']])) {
+                                $selling_store_home = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
+                            }
+                        }
+                        // Default store name/link if no actual seller or store is found for the product
+                        $store_name_display_home = $selling_store_home['name'] ?? 'Toko Tidak Dikenal';
+                        $store_link_home = $selling_store_home['store_id_string'] ? "store_profile_buyer.php?store_id_string=" . urlencode($selling_store_home['store_id_string']) : "#";
                         ?>
-                        <div class="card">
+                        <div class="card" data-category="<?php echo htmlspecialchars($flower['category_name'] ?? ($flower['family'] ?? 'Lain-lain')); ?>">
                             <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
                             <div class="card-content">
                                 <h3><?php echo htmlspecialchars($flower['name']); ?></h3>
+                                <p class="category-display"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($flower['category_name'] ?? ($flower['family'] ?? 'Lain-lain')); ?></p>
                                 <p><strong>Nama Ilmiah:</strong> <?php echo htmlspecialchars($flower['scientific_name'] ?? $flower['scientific'] ?? 'N/A'); ?></p>
                                 <p><strong>Familia:</strong> <?php echo htmlspecialchars($flower['family'] ?? 'N/A'); ?></p>
                                 <p><?php echo htmlspecialchars(substr($flower['description'] ?? '', 0, 80)); ?>...</p>
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
+                                <div class="store-info-display">
+                                    <span class="label"><i class="fas fa-store"></i> Dijual oleh:</span>
+                                    <?php if ($selling_store_home && !empty($store_link_home) && $store_link_home !== "#"): ?>
+                                        <a href="<?php echo $store_link_home; ?>" class="store-name-link">
+                                            <?php echo htmlspecialchars($store_name_display_home); ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="store-name-link"><?php echo htmlspecialchars($store_name_display_home); ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="card-buttons-container">
                                 <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $flower['name']))); ?>" class="see-more-btn"><i class="fas fa-info-circle"></i> Detail</a>
+                                <?php if ($flower['seller_id'] && $flower['seller_id'] != $user_id && $selling_store_home): // Show chat if seller_id valid, not own product, and store data exists ?>
+                                <a href="/PlantPals/dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($flower['seller_id']); ?>&store_id=<?php echo htmlspecialchars($selling_store_home['id'] ?? ''); ?>&subject=Pertanyaan Produk: <?php echo urlencode($flower['name']); ?>" class="chat-product-btn">
+                                    <i class="fas fa-comment-dots"></i> Chat
+                                </a>
+                                <?php endif; ?>
                                 <form action="dashboard.php" method="post" style="margin:0;">
                                     <input type="hidden" name="action" value="add_to_cart">
                                     <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($flower['id']); ?>">
@@ -1179,39 +661,63 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             </div>
                         </div>
                         <?php
-                    }
+                    endforeach;
                 }
                 ?>
-                </div> <?php
+                </div>
+                <div id="noFilteredProductsHome" class="no-filtered-products">
+                    <i class="fas fa-filter"></i>
+                    <p>Tidak ada produk ditemukan dalam kategori yang dipilih.</p>
+                </div>
+                <?php
             } elseif ($page == 'products') {
                 ?>
                 <div class="page-content-panel">
                     <h2>Katalog Produk Kami</h2>
-                    <p class="page-description">Temukan berbagai tanaman hias pilihan dari penjual terpercaya!</p>
-                    <div class="product-list-page">
+                    <p class="page-description">Temukan berbagai tanaman, alat, dan kebutuhan kebun dari penjual terpercaya!</p>
+
+                    <div class="category-filter-bar">
+                        <button class="filter-btn active" data-category="all"><i class="fas fa-layer-group"></i> Semua</button>
+                        <?php foreach ($all_categories as $cat): ?>
+                            <button class="filter-btn" data-category="<?php echo htmlspecialchars($cat); ?>"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat); ?></button>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="product-list-page grid" id="productListGrid">
                         <?php foreach ($flowers_to_display as $flower):
                             $selling_store = null;
-                            if (isset($flower['seller_id']) && isset($stores_by_seller_id[$flower['seller_id']])) {
-                                $selling_store = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
+                            if (isset($flower['seller_id'])) {
+                                if (!isset($stores_by_seller_id[$flower['seller_id']])) {
+                                    $sql_temp_store = "SELECT s.id, s.store_id_string, s.name, s.address, s.phone_number, s.email, s.seller_user_id, s.followers_count FROM stores s WHERE s.seller_user_id = ? LIMIT 1";
+                                    if ($stmt_temp_store = mysqli_prepare($conn, $sql_temp_store)) {
+                                        mysqli_stmt_bind_param($stmt_temp_store, "i", $flower['seller_id']);
+                                        mysqli_stmt_execute($stmt_temp_store);
+                                        $result_temp_store = mysqli_stmt_get_result($stmt_temp_store);
+                                        if ($temp_store_data = mysqli_fetch_assoc($result_temp_store)) {
+                                            $stores_by_seller_id[$flower['seller_id']][] = $temp_store_data;
+                                        }
+                                        mysqli_stmt_close($stmt_temp_store);
+                                    }
+                                }
+                                if (isset($stores_by_seller_id[$flower['seller_id']])) {
+                                    $selling_store = $stores_by_seller_id[$flower['seller_id']][0] ?? null;
+                                }
                             }
                             $store_link = "#";
                             $store_name_display = "Toko Tidak Dikenal";
-                            $store_id_string_for_order = "";
-                            $store_name_full_for_order = "";
+                            $store_db_id_product_list = null;
 
                             if ($selling_store) {
-                                $store_id_string_for_order = htmlspecialchars($selling_store['store_id_string'] ?? '');
-                                if (!empty($store_id_string_for_order)) {
-                                    $store_link = "store_profile_buyer.php?store_id_string=" . urlencode($store_id_string_for_order);
-                                }
+                                $store_link = "store_profile_buyer.php?store_id_string=" . urlencode($selling_store['store_id_string']);
                                 $store_name_display = htmlspecialchars($selling_store['name']);
-                                $store_name_full_for_order = htmlspecialchars($selling_store['name'] . " - (" . ($selling_store['address'] ?? 'Alamat Tidak Diketahui') . ")");
+                                $store_db_id_product_list = htmlspecialchars($selling_store['id']);
                             }
                         ?>
-                        <div class="product-item-page card">
+                        <div class="product-item-page card" data-category="<?php echo htmlspecialchars($flower['category_name'] ?? ($flower['family'] ?? 'Lain-lain')); ?>">
                             <img src="<?php echo htmlspecialchars($flower['img']); ?>" alt="<?php echo htmlspecialchars($flower['name']); ?>" />
                             <div class="card-content">
                                 <h4><?php echo htmlspecialchars($flower['name']); ?></h4>
+                                <p class="category-display"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($flower['category_name'] ?? ($flower['family'] ?? 'Lain-lain')); ?></p>
                                 <p class="price">Rp <?php echo number_format($flower['price'], 0, ',', '.'); ?></p>
                                 <div class="store-info-display">
                                     <span class="label"><i class="fas fa-store"></i> Dijual oleh:</span>
@@ -1227,6 +733,11 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             </div>
                             <div class="card-buttons-container">
                                 <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $flower['name']))); ?>" class="see-more-btn"><i class="fas fa-info-circle"></i> Detail</a>
+                                <?php if ($flower['seller_id'] && $flower['seller_id'] != $user_id): // Don't show chat/buy if it's their own product ?>
+                                <a href="/PlantPals/dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($flower['seller_id']); ?>&store_id=<?php echo htmlspecialchars($store_db_id_product_list); ?>&subject=Pertanyaan Produk: <?php echo urlencode($flower['name']); ?>" class="chat-product-btn">
+                                    <i class="fas fa-comment-dots"></i> Chat Penjual
+                                </a>
+                                <?php endif; ?>
                                 <form action="dashboard.php" method="post" style="margin:0;">
                                     <input type="hidden" name="action" value="add_to_cart">
                                     <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($flower['id']); ?>">
@@ -1235,6 +746,10 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             </div>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                    <div id="noFilteredProductsList" class="no-filtered-products">
+                        <i class="fas fa-filter"></i>
+                        <p>Tidak ada produk ditemukan dalam kategori yang dipilih.</p>
                     </div>
                 </div>
                 <?php
@@ -1250,9 +765,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             <p>Keranjang Anda masih kosong.</p>
                             <a href="dashboard.php?page=products" class="btn-primary" style="margin-top: 20px;">Mulai Belanja</a>
                         </div>
-                    <?php else: 
-                        $total_cart_amount = 0; 
-                    ?>
+                    <?php else: ?>
                         <div class="cart-items-list">
                             <?php foreach ($cart_items as $product_id => $item):
                                 $subtotal = $item['price'] * $item['quantity'];
@@ -1262,16 +775,17 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                     <img src="<?php echo htmlspecialchars($item['img']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>">
                                     <div class="cart-item-details">
                                         <h4><?php echo htmlspecialchars($item['name']); ?></h4>
+                                        <p class="category-display"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($item['category'] ?? 'Lain-lain'); ?></p>
                                         <p class="price">Rp <?php echo number_format($item['price'], 0, ',', '.'); ?></p>
                                         <p>Dari: <?php echo htmlspecialchars($item['store_name']); ?></p>
                                     </div>
                                     <div class="cart-item-actions">
-                                        <form action="dashboard.php" method="post" style="display:flex; align-items:center; gap: 5px;">
+                                        <form action="dashboard.php" method="post" style="display:flex; align-items:center;">
                                             <input type="hidden" name="action" value="update_cart_quantity">
                                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_id); ?>">
                                             <input type="number" name="quantity" value="<?php echo htmlspecialchars($item['quantity']); ?>" min="0" onchange="this.form.submit()">
-                                        </form>
-                                        <form action="dashboard.php" method="post" style="margin:0;">
+                                            <button type="submit" class="buy-button" style="display:none;">Update</button> </form>
+                                        <form action="dashboard.php" method="post">
                                             <input type="hidden" name="action" value="remove_from_cart">
                                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_id); ?>">
                                             <button type="submit" class="remove-btn"><i class="fas fa-trash"></i> Hapus</button>
@@ -1291,6 +805,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][quantity]" value="<?php echo htmlspecialchars($item['quantity']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_id_string]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name']); ?>">
+                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][category]" value="<?php echo htmlspecialchars($item['category'] ?? 'Lain-lain'); ?>">
                                 <?php endforeach; ?>
                                 <button type="submit" class="checkout-btn"><i class="fas fa-money-check-alt"></i> Lanjutkan ke Pembayaran</button>
                             </form>
@@ -1299,7 +814,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 </div>
                 <?php
             } elseif ($page == 'profile') {
-                // Fetch user data for profile page
                 $user_data = [];
                 $sql_user = "SELECT id, username, email, full_name, phone_number, address, created_at, role FROM users WHERE id = ?";
                 if ($stmt_user = mysqli_prepare($conn, $sql_user)) {
@@ -1309,6 +823,19 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                     $user_data = mysqli_fetch_assoc($result_user);
                     mysqli_stmt_close($stmt_user);
                 }
+
+                // Get count of stores followed by this user
+                $stores_followed_count = 0;
+                $sql_followed_count = "SELECT COUNT(id) FROM store_followers WHERE user_id = ?";
+                if ($stmt_followed = mysqli_prepare($conn, $sql_followed_count)) {
+                    mysqli_stmt_bind_param($stmt_followed, "i", $user_id);
+                    mysqli_stmt_execute($stmt_followed);
+                    mysqli_stmt_bind_result($stmt_followed, $count_followed);
+                    mysqli_stmt_fetch($stmt_followed);
+                    $stores_followed_count = $count_followed;
+                    mysqli_stmt_close($stmt_followed);
+                }
+
                 $is_editing_profile = (isset($_GET['action']) && $_GET['action'] == 'edit_profile');
                 ?>
                 <div class="page-content-panel">
@@ -1324,7 +851,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             <p><strong><i class="fas fa-map-marker-alt"></i> Alamat:</strong> <?php echo htmlspecialchars($user_data['address'] ?? 'N/A'); ?></p>
                             <p><strong><i class="fas fa-calendar-alt"></i> Bergabung Sejak:</strong> <?php echo htmlspecialchars(date('d F Y', strtotime($user_data['created_at'] ?? 'now'))); ?></p>
                             <p><strong><i class="fas fa-user-tag"></i> Status Akun:</strong> Aktif (<?php echo htmlspecialchars($user_data['role'] ?? 'buyer'); ?>)</p>
-                            <a href="dashboard.php?page=profile&action=edit_profile" class="profile-info-btn"><i class="fas fa-edit"></i> Edit Profil</a>
+                            <p><strong><i class="fas fa-store"></i> Toko Diikuti:</strong> <?php echo htmlspecialchars($stores_followed_count); ?></p>
+                            <p><strong><i class="fas fa-users"></i> Pengikut (anda):</strong> N/A</p> <a href="dashboard.php?page=profile&action=edit_profile" class="profile-info-btn"><i class="fas fa-edit"></i> Edit Profil</a>
                         </div>
                     <?php else: ?>
                         <div class="profile-edit-form-container card-panel">
@@ -1368,7 +896,8 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                     $result_orders = mysqli_stmt_get_result($stmt_orders);
                     while ($row = mysqli_fetch_assoc($result_orders)) {
                         $order_items = [];
-                        $item_sql = "SELECT * FROM order_items WHERE order_id = ?";
+                        // NEW: Select 'category_name' for order items display
+                        $item_sql = "SELECT oi.*, c.name as category_name FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id LEFT JOIN categories c ON p.category_id = c.id WHERE order_id = ?";
                         if ($item_stmt = mysqli_prepare($conn, $item_sql)) {
                             mysqli_stmt_bind_param($item_stmt, "i", $row['id']);
                             mysqli_stmt_execute($item_stmt);
@@ -1388,7 +917,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                     <h2><i class="fas fa-box-open"></i> Pesanan Anda</h2>
                     <p class="page-description">Berikut adalah daftar pesanan yang telah Anda lakukan.</p>
                     <?php if (empty($user_orders)): ?>
-                        <p class="no-results" style="margin-top: 20px;">Tidak ada pesanan yang ditemukan.</p>
+                        <p class="no-results">Tidak ada pesanan yang ditemukan.</p>
                     <?php else: ?>
                         <ul class="order-list">
                             <?php foreach ($user_orders as $order): ?>
@@ -1406,9 +935,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                         $order_timestamp = strtotime($order['order_date']);
                                         $current_timestamp = time();
                                         $one_hour_limit = 60 * 60;
-                                        $is_cancel_enabled = (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
-                                            ($order['order_status'] == 'pending' || $order['order_status'] == 'processing'));
-                                        if ($is_cancel_enabled):
+
+                                        if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+                                            ($order['order_status'] == 'pending' || $order['order_status'] == 'processing')):
                                         ?>
                                             <form action="dashboard.php" method="post" style="display:inline-block; margin-left: 10px;">
                                                 <input type="hidden" name="action" value="cancel_order">
@@ -1423,7 +952,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                         <strong>Item:</strong>
                                         <ul>
                                             <?php foreach ($order['items'] as $item): ?>
-                                                <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> (dari <?php echo htmlspecialchars($item['store_name']); ?>)</li>
+                                                <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> (dari <?php echo htmlspecialchars($item['store_name']); ?>) (Kategori: <?php echo htmlspecialchars($item['category_name'] ?? 'N/A'); ?>)</li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </div>
@@ -1446,9 +975,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 $conversation_sellers = [];
                 $sql_conversation_sellers = "SELECT DISTINCT u.id, u.username, s.id as store_db_id, s.name as store_name
                                             FROM messages m
-                                            JOIN users u ON (m.sender_id = u.id OR m.receiver_id = u.id)
+                                            JOIN users u ON (m.sender_id = u.id AND m.receiver_id = ?) OR (m.receiver_id = u.id AND m.sender_id = ?)
                                             LEFT JOIN stores s ON u.id = s.seller_user_id
-                                            WHERE (m.sender_id = ? AND u.role = 'seller') OR (m.receiver_id = ? AND u.role = 'seller')
+                                            WHERE u.role = 'seller'
                                             ORDER BY m.sent_at DESC";
                 if ($stmt_conv_sellers = mysqli_prepare($conn, $sql_conversation_sellers)) {
                     mysqli_stmt_bind_param($stmt_conv_sellers, "ii", $user_id, $user_id);
@@ -1494,6 +1023,15 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                         $result_conv_messages = mysqli_stmt_get_result($stmt_conv_messages);
                         while ($row_msg = mysqli_fetch_assoc($result_conv_messages)) {
                             $messages[] = $row_msg;
+                            // Mark messages from this sender as read when conversation is opened
+                            if ($row_msg['sender_id'] == $target_seller_id && $row_msg['receiver_id'] == $user_id && $row_msg['is_read'] == 0) {
+                                $stmt_mark_read = mysqli_prepare($conn, "UPDATE messages SET is_read = 1 WHERE id = ?");
+                                if ($stmt_mark_read) {
+                                    mysqli_stmt_bind_param($stmt_mark_read, "i", $row_msg['id']);
+                                    mysqli_stmt_execute($stmt_mark_read);
+                                    mysqli_stmt_close($stmt_mark_read);
+                                }
+                            }
                             // Update related store ID if found in any message
                             if ($row_msg['store_id']) {
                                 $target_store_id = $row_msg['store_id'];
@@ -1511,14 +1049,14 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                         <div class="conversation-list-panel card-panel">
                             <h3>Percakapan</h3>
                             <?php if (empty($conversation_sellers)): ?>
-                                <p style="color: #777;">Belum ada percakapan dengan penjual.</p>
+                                <p class="no-messages">Belum ada percakapan dengan penjual.</p>
                             <?php else: ?>
                                 <ul style="list-style: none; padding: 0;">
                                     <?php foreach ($conversation_sellers as $seller_conv):
                                         // Count unread messages for this seller (messages FROM seller to buyer)
                                         $unread_count = 0;
-                                        $temp_conn = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                                        $stmt_unread = mysqli_prepare($temp_conn, "SELECT COUNT(id) FROM messages WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+                                        // Use the existing $conn for unread count
+                                        $stmt_unread = mysqli_prepare($conn, "SELECT COUNT(id) FROM messages WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
                                         if ($stmt_unread) {
                                             mysqli_stmt_bind_param($stmt_unread, "ii", $seller_conv['id'], $user_id);
                                             mysqli_stmt_execute($stmt_unread);
@@ -1527,7 +1065,6 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                             $unread_count = $count;
                                             mysqli_stmt_close($stmt_unread);
                                         }
-                                        mysqli_close($temp_conn);
                                     ?>
                                         <li style="margin-bottom: 5px;">
                                             <a href="dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($seller_conv['id']); ?>&store_id=<?php echo htmlspecialchars($seller_conv['store_db_id'] ?? 0); ?>" 
@@ -1547,7 +1084,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                             <?php if ($target_seller_id > 0): ?>
                                 <h3>Percakapan dengan <?php echo $seller_username_target; ?> (<?php echo $store_name_target; ?>)</h3>
                                 
-                                <div class="chat-messages-display">
+                                <div class="chat-messages-display" id="chat-messages-display">
                                     <?php if (empty($messages)): ?>
                                         <p class="no-messages">Belum ada pesan dalam percakapan ini.</p>
                                     <?php else: ?>
@@ -1578,7 +1115,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                                     </form>
                                 </div>
                             <?php else: ?>
-                                <p style="text-align: center; color: #777;">Pilih percakapan dari daftar di sebelah kiri atau kirim pesan baru.</p>
+                                <p class="no-messages">Pilih percakapan dari daftar di sebelah kiri atau kirim pesan baru.</p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1647,7 +1184,7 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
             const popupMessage = document.getElementById('popupMessage');
             const popupCloseBtn = document.getElementById('popupCloseBtn');
 
-            popupMessage.textContent = message;
+            popupMessage.innerHTML = message.replace(/\\n/g, '<br>');
             popupIcon.className = 'icon';
             if (status === 'success') {
                 popupIcon.classList.add('fas', 'fa-check-circle', 'success');
@@ -1676,6 +1213,74 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
                 showPopup("<?php echo $popup_message; ?>", "<?php echo $popup_status; ?>");
             });
         <?php endif; ?>
+
+        // JavaScript for Category Filtering on Home & Products pages
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.category-filter-bar .filter-btn');
+            const productCardsHome = document.querySelectorAll('#flowerGrid .card'); // Target for home page
+            const productCardsList = document.querySelectorAll('#productListGrid .card'); // Target for products page
+            const noFilteredProductsMessageHome = document.getElementById('noFilteredProductsHome'); // For home page
+            const noFilteredProductsMessageList = document.getElementById('noFilteredProductsList'); // For products page
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const selectedCategory = this.dataset.category;
+                    let productsShownHome = 0;
+                    let productsShownList = 0;
+
+                    // Filter for Home page grid
+                    productCardsHome.forEach(card => {
+                        const cardCategory = card.dataset.category;
+                        if (selectedCategory === 'all' || cardCategory === selectedCategory) {
+                            card.style.display = 'flex';
+                            productsShownHome++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    // Filter for Products page grid
+                    productCardsList.forEach(card => {
+                        const cardCategory = card.dataset.category;
+                        if (selectedCategory === 'all' || cardCategory === selectedCategory) {
+                            card.style.display = 'flex';
+                            productsShownList++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    // Update no products message based on current page
+                    if (window.location.search.includes('page=home')) {
+                        if (productsShownHome === 0) {
+                            noFilteredProductsMessageHome.style.display = 'block';
+                        } else {
+                            noFilteredProductsMessageHome.style.display = 'none';
+                        }
+                    } else if (window.location.search.includes('page=products')) {
+                         if (productsShownList === 0) {
+                            noFilteredProductsMessageList.style.display = 'block';
+                        } else {
+                            noFilteredProductsMessageList.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            // Initial filter application on page load (e.g., if a category is passed via URL)
+            // Ensure the 'all' button is clicked by default
+            document.querySelector('.category-filter-bar button[data-category="all"]').click();
+
+            // Auto-scroll chat messages to bottom on load/update
+            const chatMessagesDisplay = document.getElementById('chat-messages-display');
+            if (chatMessagesDisplay) {
+                chatMessagesDisplay.scrollTop = chatMessagesDisplay.scrollHeight;
+            }
+        });
+
     </script>
 </body>
 </html>
