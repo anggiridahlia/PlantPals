@@ -772,11 +772,7 @@ mysqli_close($conn); // Close connection after all data fetching
         </div>
     </div>
 
-    <div class="store-nav-bar" style="margin-bottom: 40px;"> <div class="store-nav-content"> <a href="javascript:void(0)" class="active" data-filter="all">Semua Produk</a>
-            <a href="javascript:void(0)" data-filter="Rosaceae">Bunga Potong</a> 
-            <a href="javascript:void(0)" data-filter="Asparagaceae">Tanaman Indoor</a> 
-            <a href="javascript:void(0)" data-filter="Aksesoris">Aksesoris</a> <a href="javascript:void(0)" data-filter="Terlaris">Terlaris</a> <a href="javascript:void(0)" data-filter="Terbaru">Terbaru</a> <a href="javascript:void(0)" data-filter="Diskon">Diskon</a> </div>
-    </div>
+
     <?php endif; ?>
 
     <div class="main-content-area" style="padding: 0; margin-top: 0;"> 

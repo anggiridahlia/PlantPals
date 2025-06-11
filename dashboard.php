@@ -1,7 +1,8 @@
 <?php
 session_start();
-ini_set('display_errors', 1); // Mengaktifkan tampilan error di browser
-ini_set('display_startup_errors', 1); // Mengaktifkan tampilan error saat startup
+// Mengaktifkan tampilan error untuk debugging. Hapus atau set ke 0 untuk produksi.
+ini_set('display_errors', 0); // Ubah dari 1 menjadi 0 untuk menyembunyikan error di browser
+ini_set('display_startup_errors', 0); // Ubah dari 1 menjadi 0
 error_reporting(E_ALL); // Melaporkan semua jenis error
 
 if (!isset($_SESSION['username'])) {
@@ -58,7 +59,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
         $sql_product = "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id, c.name as category_name
                         FROM products p
                         LEFT JOIN categories c ON p.category_id = c.id
-                        WHERE p.id = ?"; 
+                        WHERE p.id = ?";
         
         if ($stmt_product = mysqli_prepare($conn, $sql_product)) {
             mysqli_stmt_bind_param($stmt_product, "i", $product_id);
@@ -77,7 +78,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
 
                 $store_id_for_cart = $selling_store_for_cart['id'] ?? 'N/A'; // Use actual store_id (int) not store_id_string
                 $store_name_for_cart = $selling_store_for_cart['name'] ?? 'Toko Tidak Dikenal';
-                if ($selling_store_for_cart && $selling_store_for_cart['address']) {
+                if ($selling_store_for_cart && ($selling_store_for_cart['address'] ?? '') !== '') { // Perbaikan di sini
                     $store_name_for_cart .= " - (" . htmlspecialchars($selling_store_for_cart['address']) . ")";
                 }
 
@@ -203,9 +204,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
             $current_timestamp = time();
             $one_hour_limit = 60 * 60; // 1 jam dalam detik
 
-            if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+            if (($current_timestamp - $order_timestamp) <= $one_hour_limit &&
                 ($order_to_check['order_status'] == 'pending' || $order_to_check['order_status'] == 'processing')) {
-                
+
                 mysqli_autocommit($conn, FALSE);
                 $cancel_success = true;
 
@@ -228,7 +229,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
                         mysqli_stmt_bind_param($stmt_get_items, "i", $order_id_to_cancel);
                         mysqli_stmt_execute($stmt_get_items);
                         $result_items = mysqli_stmt_get_result($stmt_get_items);
-                        
+
                         while ($item_row = mysqli_fetch_assoc($result_items)) {
                             $product_id_returned = $item_row['product_id'];
                             $quantity_returned = $item_row['quantity'];
@@ -430,7 +431,7 @@ if ($result_products_all) {
         $flowers_from_db[] = $row;
     }
 }
-
+/* No direct modification to the original logic of data.php, just ensuring it's loaded before $flowers_to_display is populated */
 // Fallback for initial data from data.php if no products in DB
 // Ensure fallback products also have category_name for display and filtering
 $flowers_to_display = [];
@@ -777,13 +778,13 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                         <h4><?php echo htmlspecialchars($item['name']); ?></h4>
                                         <p class="category-display"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($item['category'] ?? 'Lain-lain'); ?></p>
                                         <p class="price">Rp <?php echo number_format($item['price'], 0, ',', '.'); ?></p>
-                                        <p>Dari: <?php echo htmlspecialchars($item['store_name']); ?></p>
+                                        <p>Dari: <?php echo htmlspecialchars($item['store_name'] ?? 'N/A'); ?></p>
                                     </div>
                                     <div class="cart-item-actions">
                                         <form action="dashboard.php" method="post" style="display:flex; align-items:center;">
                                             <input type="hidden" name="action" value="update_cart_quantity">
                                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_id); ?>">
-                                            <input type="number" name="quantity" value="<?php echo htmlspecialchars($item['quantity']); ?>" min="0" onchange="this.form.submit()">
+                                            <input type="number" name="quantity" value="<?php echo htmlspecialchars($item['quantity']); ?>" min="1" max="<?php echo htmlspecialchars($item['stock']); ?>" onchange="this.form.submit()">
                                             <button type="submit" class="buy-button" style="display:none;">Update</button> </form>
                                         <form action="dashboard.php" method="post">
                                             <input type="hidden" name="action" value="remove_from_cart">
@@ -803,8 +804,8 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][name]" value="<?php echo htmlspecialchars($item['name']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][price]" value="<?php echo htmlspecialchars($item['price']); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][quantity]" value="<?php echo htmlspecialchars($item['quantity']); ?>">
-                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_id_string]" value="<?php echo htmlspecialchars($item['store_id_string']); ?>">
-                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name']); ?>">
+                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_id_string]" value="<?php echo htmlspecialchars($item['store_id_string'] ?? ''); ?>">
+                                    <input type="hidden" name="cart_items[<?php echo $product_id; ?>][store_name]" value="<?php echo htmlspecialchars($item['store_name'] ?? ''); ?>">
                                     <input type="hidden" name="cart_items[<?php echo $product_id; ?>][category]" value="<?php echo htmlspecialchars($item['category'] ?? 'Lain-lain'); ?>">
                                 <?php endforeach; ?>
                                 <button type="submit" class="checkout-btn"><i class="fas fa-money-check-alt"></i> Lanjutkan ke Pembayaran</button>
@@ -936,7 +937,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                         $current_timestamp = time();
                                         $one_hour_limit = 60 * 60;
 
-                                        if (($current_timestamp - $order_timestamp) <= $one_hour_limit && 
+                                        if (($current_timestamp - $order_timestamp) <= $one_hour_limit &&
                                             ($order['order_status'] == 'pending' || $order['order_status'] == 'processing')):
                                         ?>
                                             <form action="dashboard.php" method="post" style="display:inline-block; margin-left: 10px;">
@@ -1067,7 +1068,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                         }
                                     ?>
                                         <li style="margin-bottom: 5px;">
-                                            <a href="dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($seller_conv['id']); ?>&store_id=<?php echo htmlspecialchars($seller_conv['store_db_id'] ?? 0); ?>" 
+                                            <a href="dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($seller_conv['id']); ?>&store_id=<?php echo htmlspecialchars($seller_conv['store_db_id'] ?? 0); ?>"
                                                class="conversation-item <?php echo ($seller_conv['id'] == $target_seller_id) ? 'active' : ''; ?>">
                                                 <strong><?php echo htmlspecialchars($seller_conv['username']); ?> (<?php echo htmlspecialchars($seller_conv['store_name']); ?>)</strong>
                                                 <?php if ($unread_count > 0): ?>
@@ -1091,7 +1092,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                         <?php foreach ($messages as $msg): ?>
                                             <div class="chat-message-item <?php echo ($msg['sender_id'] == $user_id) ? 'sent' : 'received'; ?>">
                                                 <span class="message-sender">
-                                                    <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username_display']); ?> 
+                                                    <?php echo ($msg['sender_id'] == $user_id) ? 'Anda' : htmlspecialchars($msg['sender_username_display']); ?>
                                                     <?php if ($msg['related_store_name']): ?>
                                                         (Toko: <?php echo htmlspecialchars($msg['related_store_name']); ?>)
                                                     <?php endif; ?>
@@ -1184,17 +1185,24 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
             const popupMessage = document.getElementById('popupMessage');
             const popupCloseBtn = document.getElementById('popupCloseBtn');
 
+            // Replace \n with <br> for multiline messages
             popupMessage.innerHTML = message.replace(/\\n/g, '<br>');
-            popupIcon.className = 'icon';
+            popupIcon.className = 'icon'; // Reset classes
+            popupCloseBtn.className = 'close-btn'; // Reset classes for button
+
             if (status === 'success') {
                 popupIcon.classList.add('fas', 'fa-check-circle', 'success');
                 popupTitle.textContent = 'Berhasil!';
+                popupBox.style.borderColor = '#4CAF50'; // Set border color for success
             } else if (status === 'error') {
                 popupIcon.classList.add('fas', 'fa-times-circle', 'error');
                 popupTitle.textContent = 'Gagal!';
+                popupBox.style.borderColor = '#f44336'; // Set border color for error
+                popupCloseBtn.classList.add('error-btn'); // Add error button style
             } else {
                 popupIcon.classList.add('fas', 'fa-info-circle');
                 popupTitle.textContent = 'Informasi';
+                popupBox.style.borderColor = '#2196F3'; // Default info color
             }
 
             overlay.classList.add('active');
