@@ -1,7 +1,7 @@
 <?php
 session_start();
-ini_set('display_errors', 1); // Mengaktifkan tampilan error di browser
-ini_set('display_startup_errors', 1); // Mengaktifkan tampilan error saat startup
+ini_set('display_errors', 0); // Mengaktifkan tampilan error di browser, diubah jadi 0 untuk produksi
+ini_set('display_startup_errors', 0); // Mengaktifkan tampilan error saat startup, diubah jadi 0 untuk produksi
 error_reporting(E_ALL); // Melaporkan semua jenis error
 
 if (!isset($_SESSION['username'])) {
@@ -51,7 +51,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart_from_detail') {
     if ($product_id) {
         $sql_product_for_cart = "SELECT p.id, p.name, p.img, p.price, p.stock, p.seller_id
                                 FROM products p
-                                WHERE p.id = ?"; 
+                                WHERE p.id = ?";
         
         if ($stmt_product_for_cart = mysqli_prepare($conn, $sql_product_for_cart)) {
             mysqli_stmt_bind_param($stmt_product_for_cart, "i", $product_id);
@@ -68,7 +68,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart_from_detail') {
 
                 $store_id_for_cart = $selling_store_for_cart['store_id_string'] ?? 'N/A';
                 $store_name_for_cart = $selling_store_for_cart['name'] ?? 'Toko Tidak Dikenal';
-                if ($selling_store_for_cart && $selling_store_for_cart['address']) {
+                if ($selling_store_for_cart && ($selling_store_for_cart['address'] ?? '') !== '') {
                     $store_name_for_cart .= " - (" . htmlspecialchars($selling_store_for_cart['address']) . ")";
                 }
 
@@ -206,6 +206,7 @@ $selected_flower = null;
 if (isset($_GET['name'])) {
     $flower_param = strtolower(str_replace('_', ' ', trim($_GET['name'])));
 
+    // Fetch product details from DB
     $stmt = mysqli_prepare($conn, "SELECT p.id, p.name, p.img, p.scientific_name, p.family, p.description, p.habitat, p.care_instructions, p.unique_fact, p.price, p.stock, p.seller_id
                                  FROM products p
                                  LEFT JOIN users u ON p.seller_id = u.id
@@ -218,10 +219,12 @@ if (isset($_GET['name'])) {
         mysqli_stmt_close($stmt);
     }
 
+    // Fallback to data.php if not found in DB
     if (!$selected_flower) {
         foreach ($all_initial_products as $flower) {
             if (isset($flower['name']) && strtolower($flower['name']) === $flower_param) {
                 $selected_flower = $flower;
+                // Assign a fallback seller_id if not present for initial data
                 if (!isset($selected_flower['seller_id']) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
                     $selected_flower['seller_id'] = $DEFAULT_FALLBACK_SELLER_ID;
                 }
@@ -352,7 +355,7 @@ mysqli_close($conn);
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title><?php echo $selected_flower ? htmlspecialchars($selected_flower['name']) : 'Detail Bunga'; ?> - PlantPals</title>
+    <title><?php echo $selected_flower ? htmlspecialchars($selected_flower['name']) : 'Detail Produk'; ?> - PlantPals</title>
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/detail_flower_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -667,7 +670,7 @@ mysqli_close($conn);
         </form>
     </header>
 
-    <h1 class="page-main-title">Detail Bunga</h1>
+    <h1 class="page-main-title">Detail Produk</h1>
 
     <div class="main-content-area">
         <?php if ($selected_flower): ?>
@@ -677,27 +680,27 @@ mysqli_close($conn);
 
                 <div class="detail-item">
                     <i class="fas fa-tag"></i> <span class="detail-label">Nama Ilmiah:</span>
-                    <span class="detail-value"><?php echo htmlspecialchars($selected_flower['scientific_name'] ?? $selected_flower['scientific'] ?? 'N/A'); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($selected_flower['scientific_name'] ?? $selected_flower['scientific'] ?? 'Tidak Ada Informasi'); ?></span>
                 </div>
                 <div class="detail-item">
                     <i class="fas fa-tree"></i> <span class="detail-label">Familia:</span>
-                    <span class="detail-value"><?php echo htmlspecialchars($selected_flower['family'] ?? 'N/A'); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($selected_flower['family'] ?? 'Tidak Ada Informasi'); ?></span>
                 </div>
                 <div class="detail-item">
                     <i class="fas fa-info-circle"></i> <span class="detail-label">Deskripsi:</span>
-                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['description'] ?? 'N/A')); ?></span>
+                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['description'] ?? 'Tidak Ada Deskripsi')); ?></span>
                 </div>
                 <div class="detail-item">
                     <i class="fas fa-globe-americas"></i> <span class="detail-label">Habitat:</span>
-                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['habitat'] ?? 'N/A')); ?></span>
+                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['habitat'] ?? 'Tidak Ada Informasi')); ?></span>
                 </div>
                 <div class="detail-item">
                     <i class="fas fa-leaf"></i> <span class="detail-label">Perawatan:</span>
-                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['care_instructions'] ?? $selected_flower['care'] ?? 'N/A')); ?></span>
+                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['care_instructions'] ?? $selected_flower['care'] ?? 'Tidak Ada Informasi')); ?></span>
                 </div>
                 <div class="detail-item">
                     <i class="fas fa-lightbulb"></i> <span class="detail-label">Fakta unik:</span>
-                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['unique_fact'] ?? $selected_flower['fact'] ?? 'N/A')); ?></span>
+                    <span class="detail-value"><?php echo nl2br(htmlspecialchars($selected_flower['unique_fact'] ?? $selected_flower['fact'] ?? 'Tidak Ada Informasi')); ?></span>
                 </div>
             </div>
 
@@ -709,7 +712,7 @@ mysqli_close($conn);
                     <?php if ($selling_store_detail): ?>
                         <a href="<?php echo $store_link_detail; ?>" class="store-name-link">
                             <?php echo $store_name_display_detail; ?>
-                            <?php if ($selling_store_detail['address']) echo " - (" . htmlspecialchars($selling_store_detail['address']) . ")"; ?>
+                            <?php if (($selling_store_detail['address'] ?? '') !== '') echo " - (" . htmlspecialchars($selling_store_detail['address']) . ")"; ?>
                         </a>
                     <?php else: ?>
                         <span class="store-name-link">Toko Tidak Dikenal</span>
@@ -726,8 +729,8 @@ mysqli_close($conn);
             </div>
         <?php else: ?>
             <div class="flower-details-column" style="text-align: center; width: 100%;">
-                <h3><i class="fas fa-exclamation-triangle"></i> Bunga Tidak Ditemukan</h3>
-                <p>Informasi bunga yang Anda cari tidak tersedia. Pastikan nama bunga yang Anda masukkan benar.</p>
+                <h3><i class="fas fa-exclamation-triangle"></i> Produk Tidak Ditemukan</h3>
+                <p>Informasi produk yang Anda cari tidak tersedia. Pastikan nama produk yang Anda masukkan benar.</p>
             </div>
         <?php endif; ?>
     </div>
@@ -812,7 +815,7 @@ mysqli_close($conn);
 
     <?php if ($selected_flower && !empty($recommended_flowers)): ?>
         <div class="recommended-flowers-section-container">
-            <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Bunga Lainnya</h2>
+            <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Produk Lainnya</h2>
             <div class="recommended-grid">
                 <?php foreach ($recommended_flowers as $rec_flower): ?>
                     <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $rec_flower['name']))); ?>" class="recommended-item card">

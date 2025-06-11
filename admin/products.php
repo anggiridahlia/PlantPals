@@ -1,7 +1,7 @@
 <?php
 session_start();
-ini_set('display_errors', 1); // Aktifkan tampilan error di browser
-ini_set('display_startup_errors', 1); // Aktifkan tampilan error saat startup
+ini_set('display_errors', 1); // Aktifkan tampilan error di browser - KEMBALIKAN KE 0 UNTUK PRODUKSI!
+ini_set('display_startup_errors', 1); // Aktifkan tampilan error saat startup - KEMBALIKAN KE 0 UNTUK PRODUKSI!
 error_reporting(E_ALL); // Melaporkan semua jenis error
 
 // Tentukan ROOT_PATH untuk path yang lebih stabil
@@ -52,17 +52,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($action == 'add' || $action == 'edit') {
         $product_id = isset($_POST['product_id']) ? $_POST['product_id'] : null;
-        $name = trim($_POST['name']);
+        $name = trim($_POST['name'] ?? ''); // Pastikan selalu ada ?? ''
         $scientific_name = trim($_POST['scientific_name'] ?? '');
         $family = trim($_POST['family'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $habitat = trim($_POST['habitat'] ?? '');
         $care_instructions = trim($_POST['care_instructions'] ?? '');
         $unique_fact = trim($_POST['unique_fact'] ?? '');
-        $price = floatval($_POST['price']);
-        $stock = intval($_POST['stock']);
-        $seller_id_assigned = intval($_POST['seller_id']); // Admin assigns seller_id
-        $category_id = intval($_POST['category_id']); // NEW: Get category_id
+        $price = floatval($_POST['price'] ?? 0); // Default ke 0 jika tidak ada
+        $stock = intval($_POST['stock'] ?? 0); // Default ke 0 jika tidak ada
+        $seller_id_assigned = intval($_POST['seller_id'] ?? 0); // Admin assigns seller_id
+        $category_id = intval($_POST['category_id'] ?? 0); // NEW: Get category_id
 
         // --- Handle Image Upload ---
         $img_path = $_POST['current_img_path'] ?? ($product_to_edit['img'] ?? null); // Get current_img_path from POST, fallback to product_to_edit
@@ -122,6 +122,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "<script>alert('Nama Produk, Gambar, Harga, Stok, Penjual, dan Kategori wajib diisi dengan benar.'); window.history.back();</script>";
             exit;
         }
+
+        // --- DEBUGGING LOG ---
+        error_log("--- Product Form Submission Debug ---");
+        error_log("Action: " . $action);
+        error_log("Product ID: " . ($product_id ?? 'N/A'));
+        error_log("Name: " . $name);
+        error_log("Img Path: " . ($img_path ?? 'N/A'));
+        error_log("Scientific Name: " . $scientific_name);
+        error_log("Family: " . $family);
+        error_log("Description: " . $description);
+        error_log("Habitat: " . $habitat);
+        error_log("Care Instructions: " . $care_instructions);
+        error_log("Unique Fact: " . $unique_fact);
+        error_log("Price: " . $price . " (Type: " . gettype($price) . ")");
+        error_log("Stock: " . $stock . " (Type: " . gettype($stock) . ")");
+        error_log("Seller ID Assigned: " . $seller_id_assigned . " (Type: " . gettype($seller_id_assigned) . ")");
+        error_log("Category ID: " . $category_id . " (Type: " . gettype($category_id) . ")");
+        error_log("--- End Debug ---");
+
 
         if ($action == 'add') {
             $sql = "INSERT INTO products (name, img, scientific_name, family, description, habitat, care_instructions, unique_fact, price, stock, seller_id, category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // Correctly using category_id
@@ -271,6 +290,18 @@ mysqli_close($conn);
             </div>
             
             <div class="form-group">
+                <label for="seller_id"><i class="fas fa-user-tie"></i> Penjual:</label>
+                <select id="seller_id" name="seller_id" required>
+                    <option value="">Pilih Penjual</option>
+                    <?php foreach($sellers as $seller): ?>
+                        <option value="<?php echo htmlspecialchars($seller['id']); ?>" <?php echo ($product_to_edit && $product_to_edit['seller_id'] == $seller['id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($seller['username']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="category_id"><i class="fas fa-folder"></i> Kategori:</label>
                 <select id="category_id" name="category_id" required>
                     <option value="">Pilih Kategori</option>
@@ -292,7 +323,7 @@ mysqli_close($conn);
     </div>
 
     <div class="section-header">
-        <h2>Daftar Produk Anda</h2>
+        <h2>Daftar Produk</h2>
         <a href="products.php" class="add-new-btn"><i class="fas fa-plus"></i> Tambah Produk Baru</a>
     </div>
     <table class="data-table">
@@ -304,12 +335,13 @@ mysqli_close($conn);
                 <th>Kategori</th>
                 <th>Harga</th>
                 <th>Stok</th>
+                <th>Penjual</th>
                 <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($products)): ?>
-                <tr><td colspan="7">Anda belum memiliki produk.</td></tr>
+                <tr><td colspan="8">Belum ada produk.</td></tr>
             <?php else: ?>
                 <?php foreach ($products as $product): ?>
                 <tr>
@@ -319,6 +351,7 @@ mysqli_close($conn);
                     <td><?php echo htmlspecialchars($product['category_name'] ?? 'N/A'); ?></td>
                     <td>Rp <?php echo number_format($product['price'], 0, ',', '.'); ?></td>
                     <td><?php echo htmlspecialchars($product['stock']); ?></td>
+                    <td><?php echo htmlspecialchars($product['seller_username'] ?? 'N/A'); ?></td>
                     <td class="action-buttons">
                         <a href="products.php?edit_id=<?php echo htmlspecialchars($product['id']); ?>" class="edit-btn"><i class="fas fa-edit"></i> Edit</a>
                         <form action="products.php" method="post" style="display:inline-block;">
