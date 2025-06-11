@@ -18,6 +18,7 @@ if (!isset($_SESSION['cart'])) {
 }
 
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
+$order_filter_status = isset($_GET['order_status']) ? htmlspecialchars($_GET['order_status']) : 'all'; // New: Filter for orders page
 
 include 'data.php'; // For initial product fallback data
 require_once 'config.php'; // Database connection, now opened once.
@@ -680,7 +681,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                     <div class="category-filter-bar">
                         <button class="filter-btn active" data-category="all"><i class="fas fa-layer-group"></i> Semua</button>
                         <?php foreach ($all_categories as $cat): ?>
-                            <button class="filter-btn" data-category="<?php echo htmlspecialchars($cat); ?>"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat); ?></button>
+                        <button class="filter-btn" data-category="<?php echo htmlspecialchars($cat); ?>"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($cat); ?></button>
                         <?php endforeach; ?>
                     </div>
 
@@ -890,15 +891,28 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                 <?php
             } elseif ($page == 'orders') {
                 $user_orders = [];
-                $sql_orders = "SELECT id, user_id, total_amount, order_status, payment_method, delivery_address, customer_name, customer_phone, customer_email, notes, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC";
-                if ($stmt_orders = mysqli_prepare($conn, $sql_orders)) {
-                    mysqli_stmt_bind_param($stmt_orders, "i", $_SESSION['id']);
+                
+                // Base SQL query for orders
+                $sql_orders_base = "SELECT id, user_id, total_amount, order_status, payment_method, delivery_address, customer_name, customer_phone, customer_email, notes, order_date FROM orders WHERE user_id = ?";
+                $sql_orders_params = [$_SESSION['id']];
+                $sql_orders_types = "i";
+
+                // Add filter for order status if not 'all'
+                if ($order_filter_status !== 'all') {
+                    $sql_orders_base .= " AND order_status = ?";
+                    $sql_orders_params[] = $order_filter_status;
+                    $sql_orders_types .= "s";
+                }
+                $sql_orders_base .= " ORDER BY order_date DESC";
+
+                if ($stmt_orders = mysqli_prepare($conn, $sql_orders_base)) {
+                    mysqli_stmt_bind_param($stmt_orders, $sql_orders_types, ...$sql_orders_params);
                     mysqli_stmt_execute($stmt_orders);
                     $result_orders = mysqli_stmt_get_result($stmt_orders);
                     while ($row = mysqli_fetch_assoc($result_orders)) {
                         $order_items = [];
-                        // NEW: Select 'category_name' for order items display
-                        $item_sql = "SELECT oi.*, c.name as category_name FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id LEFT JOIN categories c ON p.category_id = c.id WHERE order_id = ?";
+                        // Ambil seller_id dari produk untuk keperluan chat
+                        $item_sql = "SELECT oi.*, c.name as category_name, p.seller_id as product_seller_user_id FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id LEFT JOIN categories c ON p.category_id = c.id WHERE order_id = ?";
                         if ($item_stmt = mysqli_prepare($conn, $item_sql)) {
                             mysqli_stmt_bind_param($item_stmt, "i", $row['id']);
                             mysqli_stmt_execute($item_stmt);
@@ -915,15 +929,44 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                 }
                 ?>
                 <div class="page-content-panel">
-                    <h2><i class="fas fa-box-open"></i> Pesanan Anda</h2>
-                    <p class="page-description">Berikut adalah daftar pesanan yang telah Anda lakukan.</p>
+                    <div class="order-page-header">
+                        <h2><i class="fas fa-box-open"></i> Pesanan Anda</h2>
+                        <a href="dashboard.php?page=orders&order_status=history" class="view-history-btn">Lihat Riwayat Pesanan <i class="fas fa-chevron-right"></i></a>
+                    </div>
+                    
+                    <div class="order-status-filter-bar">
+                        <a href="dashboard.php?page=orders&order_status=all" class="filter-status-btn <?php echo ($order_filter_status == 'all' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
+                            <span>Semua</span>
+                        </a>
+                        <a href="dashboard.php?page=orders&order_status=pending" class="filter-status-btn <?php echo ($order_filter_status == 'pending' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-wallet"></i></div>
+                            <span>Belum Bayar</span>
+                        </a>
+                        <a href="dashboard.php?page=orders&order_status=processing" class="filter-status-btn <?php echo ($order_filter_status == 'processing' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-box"></i></div>
+                            <span>Dikemas</span>
+                        </a>
+                        <a href="dashboard.php?page=orders&order_status=shipped" class="filter-status-btn <?php echo ($order_filter_status == 'shipped' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-truck"></i></div>
+                            <span>Dikirim</span>
+                        </a>
+                        <a href="dashboard.php?page=orders&order_status=completed" class="filter-status-btn <?php echo ($order_filter_status == 'completed' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-check-circle"></i></div>
+                            <span>Selesai</span>
+                        </a>
+                        <a href="dashboard.php?page=orders&order_status=cancelled" class="filter-status-btn <?php echo ($order_filter_status == 'cancelled' ? 'active' : ''); ?>">
+                            <div class="icon-wrapper"><i class="fas fa-times-circle"></i></div>
+                            <span>Dibatalkan</span>
+                        </a>
+                    </div>
+
                     <?php if (empty($user_orders)): ?>
-                        <p class="no-results">Tidak ada pesanan yang ditemukan.</p>
+                        <p class="no-results">Tidak ada pesanan yang ditemukan untuk status ini.</p>
                     <?php else: ?>
                         <ul class="order-list">
                             <?php foreach ($user_orders as $order): ?>
-                                <li>
-                                    <div class="order-header">
+                                <li class="order-item-card"> <div class="order-header">
                                         <span><strong>ID Pesanan:</strong> #<?php echo htmlspecialchars($order['id']); ?></span>
                                         <span><strong>Tanggal:</strong> <?php echo htmlspecialchars(date('d M Y H:i', strtotime($order['order_date']))); ?></span>
                                     </div>
@@ -950,12 +993,45 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                         </span>
                                     </div>
                                     <div class="order-items-detail">
-                                        <strong>Item:</strong>
-                                        <ul>
-                                            <?php foreach ($order['items'] as $item): ?>
-                                                <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> (dari <?php echo htmlspecialchars($item['store_name']); ?>) (Kategori: <?php echo htmlspecialchars($item['category_name'] ?? 'N/A'); ?>)</li>
+                                        <?php
+                                        // Group items by store for better readability within THIS order
+                                        $grouped_items = [];
+                                        foreach ($order['items'] as $item) {
+                                            $store_key = $item['store_id']; // Use store_id from order_items for grouping
+                                            if (!isset($grouped_items[$store_key])) {
+                                                $grouped_items[$store_key] = [
+                                                    'store_name' => $item['store_name'],
+                                                    'store_id' => $item['store_id'], // actual store_id (int)
+                                                    'seller_user_id' => $item['product_seller_user_id'], // seller_user_id for chat
+                                                    'products' => []
+                                                ];
+                                            }
+                                            $grouped_items[$store_key]['products'][] = $item;
+                                        }
+                                        ?>
+                                        <?php if (!empty($grouped_items)): ?>
+                                            <?php foreach ($grouped_items as $store_group_id => $store_group): ?>
+                                                <div class="order-store-group">
+                                                    <div class="store-group-header">
+                                                        <strong><i class="fas fa-store"></i> Toko:
+                                                            <?php echo htmlspecialchars($store_group['store_name']); ?>
+                                                        </strong>
+                                                        <?php if ($store_group['seller_user_id'] && $store_group['seller_user_id'] != $user_id): ?>
+                                                            <a href="/PlantPals/dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($store_group['seller_user_id']); ?>&store_id=<?php echo htmlspecialchars($store_group['store_id']); ?>&subject=Pertanyaan Pesanan #<?php echo htmlspecialchars($order['id']); ?>" class="chat-seller-btn">
+                                                                <i class="fas fa-comment-dots"></i> Chat Penjual
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <ul>
+                                                        <?php foreach ($store_group['products'] as $item): ?>
+                                                            <li>- <?php echo htmlspecialchars($item['product_name']); ?> (<?php echo htmlspecialchars($item['quantity']); ?>x) @ Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?> (Kategori: <?php echo htmlspecialchars($item['category_name'] ?? 'N/A'); ?>)</li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
                                             <?php endforeach; ?>
-                                        </ul>
+                                        <?php else: ?>
+                                            <p>Tidak ada item produk untuk pesanan ini.</p>
+                                        <?php endif; ?>
                                     </div>
                                 </li>
                             <?php endforeach; ?>
@@ -963,7 +1039,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                     <?php endif; ?>
                 </div>
                 <?php
-            } elseif ($page == 'chat') { // NEW CHAT PAGE
+            } elseif ($page == 'chat') { // CHAT PAGE
                 $target_seller_id = isset($_GET['seller_id']) ? intval($_GET['seller_id']) : 0;
                 $target_store_id = isset($_GET['store_id']) ? intval($_GET['store_id']) : 0;
                 $default_subject = isset($_GET['subject']) ? htmlspecialchars($_GET['subject']) : '';
@@ -971,10 +1047,12 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
 
                 $seller_username_target = 'Pilih Penjual';
                 $store_name_target = 'Tidak Dikenal';
+                $store_profile_url_target = '#'; // Default empty URL
 
                 // Fetch unique sellers who sent messages to/received messages from this buyer
                 $conversation_sellers = [];
-                $sql_conversation_sellers = "SELECT DISTINCT u.id, u.username, s.id as store_db_id, s.name as store_name
+                // Update the query to also select store_id_string for conversation list
+                $sql_conversation_sellers = "SELECT DISTINCT u.id, u.username, s.id as store_db_id, s.name as store_name, s.store_id_string
                                             FROM messages m
                                             JOIN users u ON (m.sender_id = u.id AND m.receiver_id = ?) OR (m.receiver_id = u.id AND m.sender_id = ?)
                                             LEFT JOIN stores s ON u.id = s.seller_user_id
@@ -997,15 +1075,18 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                 // If a conversation seller is selected, fetch the messages for that conversation
                 $messages = [];
                 if ($target_seller_id > 0) {
-                    // Get username and store name of the selected target seller
-                    $stmt_get_seller_info = mysqli_prepare($conn, "SELECT u.username, s.name as store_name FROM users u LEFT JOIN stores s ON u.id = s.seller_user_id WHERE u.id = ? AND u.role = 'seller'");
+                    // Get username, store name, and store_id_string of the selected target seller
+                    $stmt_get_seller_info = mysqli_prepare($conn, "SELECT u.username, s.name as store_name, s.store_id_string FROM users u LEFT JOIN stores s ON u.id = s.seller_user_id WHERE u.id = ? AND u.role = 'seller'");
                     if ($stmt_get_seller_info) {
                         mysqli_stmt_bind_param($stmt_get_seller_info, "i", $target_seller_id);
                         mysqli_stmt_execute($stmt_get_seller_info);
-                        mysqli_stmt_bind_result($stmt_get_seller_info, $uname, $sname);
+                        mysqli_stmt_bind_result($stmt_get_seller_info, $uname, $sname, $s_id_string);
                         if (mysqli_stmt_fetch($stmt_get_seller_info)) {
                             $seller_username_target = htmlspecialchars($uname);
                             $store_name_target = htmlspecialchars($sname ?? 'Toko Tidak Dikenal');
+                            if (!empty($s_id_string)) {
+                                $store_profile_url_target = 'store_profile_buyer.php?store_id_string=' . urlencode($s_id_string);
+                            }
                         }
                         mysqli_stmt_close($stmt_get_seller_info);
                     }
@@ -1066,11 +1147,20 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
                                             $unread_count = $count;
                                             mysqli_stmt_close($stmt_unread);
                                         }
+                                        $conv_store_profile_url = !empty($seller_conv['store_id_string']) ? 'store_profile_buyer.php?store_id_string=' . urlencode($seller_conv['store_id_string']) : '#';
                                     ?>
                                         <li style="margin-bottom: 5px;">
                                             <a href="dashboard.php?page=chat&seller_id=<?php echo htmlspecialchars($seller_conv['id']); ?>&store_id=<?php echo htmlspecialchars($seller_conv['store_db_id'] ?? 0); ?>"
                                                class="conversation-item <?php echo ($seller_conv['id'] == $target_seller_id) ? 'active' : ''; ?>">
-                                                <strong><?php echo htmlspecialchars($seller_conv['username']); ?> (<?php echo htmlspecialchars($seller_conv['store_name']); ?>)</strong>
+                                                <strong><i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($seller_conv['username']); ?> (
+                                                    <?php if ($conv_store_profile_url != '#'): ?>
+                                                        <a href="<?php echo $conv_store_profile_url; ?>" class="chat-store-link" onclick="event.stopPropagation();">
+                                                            <i class="fas fa-store"></i> <?php echo htmlspecialchars($seller_conv['store_name']); ?>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="chat-store-name-plain"><i class="fas fa-store"></i> <?php echo htmlspecialchars($seller_conv['store_name']); ?></span>
+                                                    <?php endif; ?>
+                                                )</strong>
                                                 <?php if ($unread_count > 0): ?>
                                                     <span class="unread-count"><?php echo $unread_count; ?></span>
                                                 <?php endif; ?>
@@ -1083,7 +1173,15 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
 
                         <div class="chat-area-panel card-panel">
                             <?php if ($target_seller_id > 0): ?>
-                                <h3>Percakapan dengan <?php echo $seller_username_target; ?> (<?php echo $store_name_target; ?>)</h3>
+                                <h3>
+                                    <?php if (!empty($store_profile_url_target)): ?>
+                                        <a href="<?php echo htmlspecialchars($store_profile_url_target); ?>" class="chat-header-store-link">
+                                            <i class="fas fa-store"></i> <?php echo $seller_username_target; ?> (<span class="store-name-in-chat"><?php echo $store_name_target; ?></span>)
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="chat-header-store-name-plain"><i class="fas fa-store"></i> <?php echo $seller_username_target; ?> (<?php echo $store_name_target; ?>)</span>
+                                    <?php endif; ?>
+                                </h3>
                                 
                                 <div class="chat-messages-display" id="chat-messages-display">
                                     <?php if (empty($messages)): ?>
@@ -1292,7 +1390,3 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
     </script>
 </body>
 </html>
-<?php
-// --- CLOSE DATABASE CONNECTION AT THE VERY END OF dashboard.php ---
-mysqli_close($conn);
-?>

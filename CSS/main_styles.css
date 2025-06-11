@@ -11,7 +11,7 @@
 body {
     font-family: 'Poppins', sans-serif; /* Default font for body text */
     line-height: 1.6;
-    background: linear-gradient(to right, rgb(228, 250, 228), rgb(242, 230, 234)); /* Soft gradient background */
+    background: linear-gradient(to right, #FFFF); /* Soft gradient background */
     color: #333;
     min-height: 100vh;
     display: flex;
@@ -110,7 +110,7 @@ header nav a:hover {
 
 /* Footer styles */
 footer {
-    background-color: #3a5a20; /* Same as header */
+    background-color: #233118; /* Same as header */
     color: white;
     text-align: center;
     padding: 15px;

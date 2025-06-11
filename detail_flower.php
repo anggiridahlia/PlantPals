@@ -359,17 +359,17 @@ mysqli_close($conn);
     <link rel="stylesheet" href="/PlantPals/css/main_styles.css">
     <link rel="stylesheet" href="/PlantPals/css/detail_flower_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        /* INLINE STYLES FOR POP-UP AND REVIEWS - KEPT HERE FOR SPECIFICITY & EASE OF MODIFICATION */
         /* Gaya Pop-up Notifikasi (dari dashboard.php) */
-        /* Pastikan gaya ini sudah ada di main_styles.css atau dashboard_styles.css jika ingin global */
-        /* Jika tidak, biarkan di sini */
         .popup-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.6); /* Overlay yang sedikit lebih gelap */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -384,118 +384,115 @@ mysqli_close($conn);
         }
         .popup-box {
             background: #FFFFFF;
-            padding: 40px;
-            border-radius: 0;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            padding: 30px 40px; /* Padding disesuaikan */
+            border-radius: 5px; /* Sudut sedikit membulat */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* Shadow yang lebih lembut */
             text-align: center;
             max-width: 450px;
             width: 90%;
-            transform: translateY(-30px) scale(0.95);
+            transform: translateY(-20px) scale(0.98);
             opacity: 0;
             transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 2px solid #D60050;
+            border: 2px solid #D60050; /* Border accent yang kuat */
+            font-family: 'Open Sans', sans-serif; /* Font konsisten */
         }
         .popup-overlay.active .popup-box {
             transform: translateY(0) scale(1);
             opacity: 1;
         }
         .popup-box .icon {
-            font-size: 4.5rem;
-            margin-bottom: 25px;
+            font-size: 4rem; /* Ukuran ikon sedikit lebih kecil */
+            margin-bottom: 20px;
             display: block;
             line-height: 1;
         }
         .popup-box .icon.success {
             color: #28A745;
-            text-shadow: none;
         }
         .popup-box .icon.error {
             color: #DC3545;
-            text-shadow: none;
         }
         .popup-box h3 {
             font-family: 'Montserrat', sans-serif;
             font-size: 2rem;
-            color: #000000;
-            margin-bottom: 15px;
+            color: #333333; /* Teks lebih gelap untuk kontras */
+            margin-bottom: 10px;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
         .popup-box p {
-            font-size: 1.15rem;
+            font-size: 1rem; /* Font paragraf sedikit lebih kecil */
             color: #666;
-            margin-bottom: 30px;
-            line-height: 1.6;
+            margin-bottom: 25px;
+            line-height: 1.5;
         }
         .popup-box .close-btn {
-            background-color: #000000;
+            background-color: #D60050; /* Warna accent untuk tombol */
             color: white;
-            padding: 15px 35px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 0;
+            border-radius: 5px; /* Sudut sedikit membulat */
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         .popup-box .close-btn:hover {
-            background-color: #333333;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            background-color: #B00040; /* Warna accent lebih gelap saat hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
         }
-        /* End Pop-up Styles */
+        /* Akhir Gaya Pop-up */
 
-
-        /* Review Section Styles */
+        /* Gaya Bagian Ulasan (Review) - Sekarang berada di dalam purchase-column atau detail-wrapper */
         .review-section {
-            background: #FFFFFF;
-            padding: 40px;
-            margin-top: 60px;
-            border-radius: 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            border: 1px solid #888888;
-            width: calc(100% - 40px); /* Adjusted to match main content padding */
-            max-width: 1200px; /* Constrain width */
-            margin-left: auto;
-            margin-right: auto;
+            background: #FFFFFF; /* Bisa diubah menjadi transparan atau sesuai keinginan jika disatukan */
+            padding: 30px; /* Sesuaikan padding */
+            margin-top: 30px; /* Jarak dari kolom pembelian */
+            border-radius: 8px; /* Sudut membulat yang konsisten */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Shadow yang lebih lembut */
+            border: 1px solid #E0E0E0; /* Border yang lebih terang */
             box-sizing: border-box;
+            font-family: 'Open Sans', sans-serif;
+            width: 100%; /* Agar memenuhi lebar kolom */
         }
 
         .review-section h2 {
             font-family: 'Montserrat', sans-serif;
-            font-size: 2.5rem;
-            color: #000000;
+            font-size: 2rem; /* Ukuran judul utama sedikit lebih kecil */
+            color: #333333;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             position: relative;
             font-weight: 700;
         }
         .review-section h2::after {
             content: '';
             display: block;
-            width: 100px;
-            height: 4px;
+            width: 70px; /* Garis bawah lebih pendek */
+            height: 3px; /* Garis bawah lebih tipis */
             background-color: #D60050;
-            margin: 20px auto 0;
-            border-radius: 0;
+            margin: 10px auto 0;
+            border-radius: 2px;
         }
 
         .review-summary {
             text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #f5f5f5;
-            border: 1px solid #ccc;
-            border-radius: 0;
+            margin-bottom: 30px;
+            padding: 20px; /* Padding disesuaikan */
+            background-color: #F8F8F8; /* Background lebih terang */
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Shadow dalam yang halus */
         }
         .review-summary .stars {
-            font-size: 2.5rem;
-            color: #FFD700; /* Gold color for stars */
-            margin-bottom: 10px;
+            font-size: 2rem; /* Ukuran bintang disesuaikan */
+            color: #FFC107; /* Warna emas yang lebih cerah untuk bintang */
+            margin-bottom: 8px;
         }
         .review-summary p {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             color: #555;
             margin: 0;
         }
@@ -503,161 +500,170 @@ mysqli_close($conn);
             color: #000;
         }
 
-        /* Review Form */
+        /* Formulir Ulasan */
         .review-form-container {
-            background-color: #f9f9f9;
-            padding: 30px;
-            border: 1px solid #ccc;
-            border-radius: 0;
-            margin-bottom: 40px;
+            background-color: #fcfcfc; /* Background sangat terang */
+            padding: 25px;
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            margin-bottom: 30px;
             text-align: left;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Shadow halus */
         }
         .review-form-container h3 {
             font-family: 'Montserrat', sans-serif;
-            font-size: 1.8rem;
-            color: #000;
-            margin-bottom: 25px;
+            font-size: 1.6rem; /* Ukuran judul disesuaikan */
+            color: #333;
+            margin-bottom: 20px;
             text-align: center;
             position: relative;
+            font-weight: 600;
         }
         .review-form-container h3::after {
             content: '';
             display: block;
-            width: 60px;
-            height: 3px;
+            width: 40px;
+            height: 2px;
             background-color: #D60050;
-            margin: 15px auto 0;
-            border-radius: 0;
+            margin: 10px auto 0;
+            border-radius: 1px;
         }
         .review-form-container .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .review-form-container label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
-            color: #333;
+            color: #444;
+            font-size: 0.9rem;
         }
         .review-form-container select,
         .review-form-container textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #999;
-            border-radius: 0;
-            font-size: 1rem;
+            padding: 10px;
+            border: 1px solid #C0C0C0; /* Border lebih terang */
+            border-radius: 5px; /* Radius kecil */
+            font-size: 0.9rem;
             box-sizing: border-box;
+            font-family: 'Open Sans', sans-serif;
         }
         .review-form-container select:focus,
         .review-form-container textarea:focus {
             border-color: #D60050;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(214,0,80,0.2);
+            box-shadow: 0 0 0 3px rgba(214,0,80,0.15); /* Shadow fokus lebih lembut */
         }
         .review-form-container textarea {
-            min-height: 100px;
+            min-height: 100px; /* Textarea sedikit lebih tinggi */
             resize: vertical;
         }
         .review-form-container .submit-btn {
-            background-color: #000;
+            background-color: #000000; /* Tombol hitam */
             color: white;
-            padding: 12px 25px;
+            padding: 10px 25px; /* Padding disesuaikan */
             border: none;
-            border-radius: 0;
-            font-size: 1.1rem;
+            border-radius: 5px;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            width: auto; /* auto width for submit btn */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            width: auto;
         }
         .review-form-container .submit-btn:hover {
-            background-color: #333;
+            background-color: #333333; /* Abu-abu lebih gelap saat hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
         }
         .review-form-container .info-message {
-            background-color: #e0e0e0;
-            border: 1px solid #aaa;
+            background-color: #FFF3CD; /* Kuning muda untuk pesan info */
+            border: 1px solid #FFE082; /* Border kuning */
             padding: 15px;
-            margin-top: 20px;
-            border-radius: 0;
-            color: #555;
+            margin-top: 15px;
+            border-radius: 5px;
+            color: #856404; /* Teks kuning gelap */
             text-align: center;
+            font-size: 0.9rem;
         }
         .review-form-container .info-message i {
-            color: #D60050;
+            color: #D60050; /* Warna accent untuk ikon */
             margin-right: 8px;
         }
 
 
-        /* Individual Reviews List */
+        /* Daftar Ulasan Individual */
         .review-list {
             list-style: none;
             padding: 0;
         }
         .review-list li {
-            background-color: #fcfcfc;
-            border: 1px solid #ccc;
-            border-radius: 0;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background-color: #FDFDFD; /* Background putih untuk item ulasan */
+            border: 1px solid #EBEBEB;
+            border-radius: 8px;
+            padding: 20px; /* Padding disesuaikan */
+            margin-bottom: 12px; /* Margin sedikit lebih kecil */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03); /* Shadow lebih halus */
         }
         .review-list li .review-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #eee;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #F0F0F0; /* Garis putus-putus lebih terang */
+            padding-bottom: 8px;
         }
         .review-list li .review-header strong {
-            font-size: 1.1rem;
-            color: #000;
+            font-size: 1rem;
+            color: #222; /* Nama lebih gelap */
+            font-weight: 600;
         }
         .review-list li .review-header .stars {
-            color: #FFD700;
-            font-size: 1.2rem;
+            color: #FFC107; /* Bintang emas yang konsisten */
+            font-size: 1rem;
         }
         .review-list li .review-comment {
-            font-size: 0.95rem;
+            font-size: 0.85rem; /* Font komentar sedikit lebih kecil */
             color: #444;
-            line-height: 1.6;
-            margin-bottom: 10px;
+            line-height: 1.5;
+            margin-bottom: 8px;
         }
         .review-list li .review-date {
-            font-size: 0.85rem;
-            color: #777;
+            font-size: 0.75rem;
+            color: #888;
             text-align: right;
             display: block;
         }
         .review-list .no-reviews {
             text-align: center;
             color: #777;
-            font-size: 1.1em;
-            padding: 20px;
+            font-size: 0.95em;
+            padding: 15px;
             background-color: #f9f9f9;
             border: 1px dashed #bbb;
-            border-radius: 0;
+            border-radius: 8px;
         }
 
-        /* Responsive for pop-up */
+        /* Responsif untuk pop-up */
         @media (max-width: 480px) {
             .popup-box {
-                padding: 25px;
+                padding: 20px;
             }
             .popup-box .icon {
-                font-size: 4rem;
-                margin-bottom: 20px;
+                font-size: 3.5rem;
+                margin-bottom: 15px;
             }
             .popup-box h3 {
-                font-size: 1.7rem;
-                margin-bottom: 10px;
+                font-size: 1.6rem;
+                margin-bottom: 8px;
             }
             .popup-box p {
-                font-size: 1.05rem;
-                margin-bottom: 20px;
+                font-size: 0.95rem;
+                margin-bottom: 18px;
             }
             .popup-box .close-btn {
-                padding: 12px 30px;
-                font-size: 1rem;
+                padding: 10px 25px;
+                font-size: 0.95rem;
             }
         }
     </style>
@@ -726,6 +732,86 @@ mysqli_close($conn);
                         <i class="fas fa-cart-plus"></i> <?php echo ($selected_flower['stock'] <= 0 ? 'Stok Habis' : 'Tambah ke Keranjang'); ?>
                     </button>
                 </form>
+
+                <?php // START: Bagian Review Produk dipindahkan ke dalam purchase-column ?>
+                <?php if ($selected_flower): ?>
+                    <div class="review-section">
+                        <h2><i class="fas fa-star"></i> Ulasan Produk</h2>
+
+                        <?php if ($total_reviews_count > 0): ?>
+                            <div class="review-summary">
+                                <div class="stars">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <?php echo ($i <= $average_rating) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
+                                    <?php endfor; ?>
+                                </div>
+                                <p>Rating Rata-rata: <strong><?php echo htmlspecialchars($average_rating); ?> dari 5</strong> (dari <?php echo htmlspecialchars($total_reviews_count); ?> ulasan)</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="no-reviews">
+                                <p>Belum ada ulasan untuk produk ini.</p>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="review-form-container">
+                            <h3>Tulis Ulasan Anda</h3>
+                            <?php if ($user_has_bought_product_completed && !$user_has_reviewed_product): ?>
+                                <form action="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $selected_flower['name']))); ?>" method="post">
+                                    <input type="hidden" name="action" value="submit_review">
+                                    <input type="hidden" name="product_id_review" value="<?php echo htmlspecialchars($selected_flower['id']); ?>">
+                                    <input type="hidden" name="product_name_for_review" value="<?php echo htmlspecialchars($selected_flower['name']); ?>">
+                                    
+                                    <div class="form-group">
+                                        <label for="rating">Rating:</label>
+                                        <select id="rating" name="rating" required>
+                                            <option value="">-- Pilih Rating --</option>
+                                            <option value="5">5 Bintang - Sangat Baik</option>
+                                            <option value="4">4 Bintang - Baik</option>
+                                            <option value="3">3 Bintang - Cukup</option>
+                                            <option value="2">2 Bintang - Buruk</option>
+                                            <option value="1">1 Bintang - Sangat Buruk</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="comment">Komentar (Opsional):</label>
+                                        <textarea id="comment" name="comment" rows="5" placeholder="Bagikan pengalaman Anda tentang produk ini..."></textarea>
+                                    </div>
+                                    <button type="submit" class="submit-btn">Kirim Ulasan</button>
+                                </form>
+                            <?php else: ?>
+                                <div class="info-message">
+                                    <?php if (!$user_has_bought_product_completed): ?>
+                                        <i class="fas fa-info-circle"></i> Untuk memberikan ulasan, Anda harus membeli produk ini terlebih dahulu dan pesanan harus berstatus 'completed'.
+                                    <?php elseif ($user_has_reviewed_product): ?>
+                                        <i class="fas fa-check-circle"></i> Anda sudah memberikan ulasan untuk produk ini.
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <ul class="review-list">
+                            <?php if (empty($product_reviews)): ?>
+                                <li class="no-reviews">Belum ada ulasan yang ditampilkan. Jadilah yang pertama!</li>
+                            <?php else: ?>
+                                <?php foreach ($product_reviews as $review): ?>
+                                    <li>
+                                        <div class="review-header">
+                                            <strong><?php echo htmlspecialchars($review['username']); ?></strong>
+                                            <div class="stars">
+                                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                    <?php echo ($i <= $review['rating']) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
+                                                <?php endfor; ?>
+                                            </div>
+                                        </div>
+                                        <p class="review-comment"><?php echo nl2br(htmlspecialchars($review['comment'] ?? 'Tidak ada komentar.')); ?></p>
+                                        <span class="review-date"><?php echo htmlspecialchars(date('d M Y, H:i', strtotime($review['created_at']))); ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                <?php // END: Bagian Review Produk dipindahkan ?>
             </div>
         <?php else: ?>
             <div class="flower-details-column" style="text-align: center; width: 100%;">
@@ -733,103 +819,26 @@ mysqli_close($conn);
                 <p>Informasi produk yang Anda cari tidak tersedia. Pastikan nama produk yang Anda masukkan benar.</p>
             </div>
         <?php endif; ?>
-    </div>
 
-    <?php if ($selected_flower): // Only show review section if product is found ?>
-        <div class="review-section">
-            <h2><i class="fas fa-star"></i> Ulasan Produk</h2>
-
-            <?php if ($total_reviews_count > 0): ?>
-                <div class="review-summary">
-                    <div class="stars">
-                        <?php for ($i = 1; $i <= 5; $i++): ?>
-                            <?php echo ($i <= $average_rating) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
-                        <?php endfor; ?>
-                    </div>
-                    <p>Rating Rata-rata: <strong><?php echo htmlspecialchars($average_rating); ?> dari 5</strong> (dari <?php echo htmlspecialchars($total_reviews_count); ?> ulasan)</p>
-                </div>
-            <?php else: ?>
-                <div class="no-reviews">
-                    <p>Belum ada ulasan untuk produk ini.</p>
-                </div>
-            <?php endif; ?>
-
-            <div class="review-form-container">
-                <h3>Tulis Ulasan Anda</h3>
-                <?php if ($user_has_bought_product_completed && !$user_has_reviewed_product): ?>
-                    <form action="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $selected_flower['name']))); ?>" method="post">
-                        <input type="hidden" name="action" value="submit_review">
-                        <input type="hidden" name="product_id_review" value="<?php echo htmlspecialchars($selected_flower['id']); ?>">
-                        <input type="hidden" name="product_name_for_review" value="<?php echo htmlspecialchars($selected_flower['name']); ?>">
-                        
-                        <div class="form-group">
-                            <label for="rating">Rating:</label>
-                            <select id="rating" name="rating" required>
-                                <option value="">-- Pilih Rating --</option>
-                                <option value="5">5 Bintang - Sangat Baik</option>
-                                <option value="4">4 Bintang - Baik</option>
-                                <option value="3">3 Bintang - Cukup</option>
-                                <option value="2">2 Bintang - Buruk</option>
-                                <option value="1">1 Bintang - Sangat Buruk</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="comment">Komentar (Opsional):</label>
-                            <textarea id="comment" name="comment" rows="5" placeholder="Bagikan pengalaman Anda tentang produk ini..."></textarea>
-                        </div>
-                        <button type="submit" class="submit-btn">Kirim Ulasan</button>
-                    </form>
-                <?php else: ?>
-                    <div class="info-message">
-                        <?php if (!$user_has_bought_product_completed): ?>
-                            <i class="fas fa-info-circle"></i> Untuk memberikan ulasan, Anda harus membeli produk ini terlebih dahulu dan pesanan harus berstatus 'completed'.
-                        <?php elseif ($user_has_reviewed_product): ?>
-                            <i class="fas fa-check-circle"></i> Anda sudah memberikan ulasan untuk produk ini.
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <ul class="review-list">
-                <?php if (empty($product_reviews)): ?>
-                    <li class="no-reviews">Belum ada ulasan yang ditampilkan. Jadilah yang pertama!</li>
-                <?php else: ?>
-                    <?php foreach ($product_reviews as $review): ?>
-                        <li>
-                            <div class="review-header">
-                                <strong><?php echo htmlspecialchars($review['username']); ?></strong>
-                                <div class="stars">
-                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <?php echo ($i <= $review['rating']) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>'; ?>
-                                    <?php endfor; ?>
-                                </div>
-                            </div>
-                            <p class="review-comment"><?php echo nl2br(htmlspecialchars($review['comment'] ?? 'Tidak ada komentar.')); ?></p>
-                            <span class="review-date"><?php echo htmlspecialchars(date('d M Y, H:i', strtotime($review['created_at']))); ?></span>
-                        </li>
+        <?php // START: Bagian Rekomendasi Produk dipindahkan ke dalam main-content-area ?>
+        <?php if ($selected_flower && !empty($recommended_flowers)): ?>
+            <div class="recommended-flowers-section-container full-width-item">
+                <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Produk Lainnya</h2>
+                <div class="recommended-grid">
+                    <?php foreach ($recommended_flowers as $rec_flower): ?>
+                        <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $rec_flower['name']))); ?>" class="recommended-item card">
+                            <img src="<?php echo htmlspecialchars($rec_flower['img']); ?>" alt="<?php echo htmlspecialchars($rec_flower['name']); ?>">
+                            <h4><?php echo htmlspecialchars($rec_flower['name']); ?></h4>
+                            <p class="price">Rp <?php echo number_format($rec_flower['price'], 0, ',', '.'); ?></p>
+                            <span class="view-button">Lihat Detail <i class="fas fa-arrow-right"></i></span>
+                        </a>
                     <?php endforeach; ?>
-                <?php endif; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($selected_flower && !empty($recommended_flowers)): ?>
-        <div class="recommended-flowers-section-container">
-            <h2 class="section-heading"><i class="fas fa-seedling"></i> Rekomendasi Produk Lainnya</h2>
-            <div class="recommended-grid">
-                <?php foreach ($recommended_flowers as $rec_flower): ?>
-                    <a href="detail_flower.php?name=<?php echo urlencode(strtolower(str_replace(' ', '_', $rec_flower['name']))); ?>" class="recommended-item card">
-                        <img src="<?php echo htmlspecialchars($rec_flower['img']); ?>" alt="<?php echo htmlspecialchars($rec_flower['name']); ?>">
-                        <h4><?php echo htmlspecialchars($rec_flower['name']); ?></h4>
-                        <p class="price">Rp <?php echo number_format($rec_flower['price'], 0, ',', '.'); ?></p>
-                        <span class="view-button">Lihat Detail <i class="fas fa-arrow-right"></i></span>
-                    </a>
-                <?php endforeach; ?>
+                </div>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+        <?php // END: Bagian Rekomendasi Produk dipindahkan ?>
 
-    <div class="back-btn-container">
+    </div> <div class="back-btn-container">
         <a href="/PlantPals/dashboard.php?page=home" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali ke Home</a>
     </div>
 
