@@ -107,11 +107,11 @@ $user_email = '';
 // Ambil data profil pengguna dari database untuk mengisi form otomatis
 $sql_user_profile = "SELECT full_name, address, phone_number, email FROM users WHERE id = ?";
 if ($stmt_profile = mysqli_prepare($conn, $sql_user_profile)) {
-    mysqli_stmt_bind_param($stmt_profile, "i", $user_id);
+    mysqli_stmt_bind_param($stmt_profile, "i", $user_id); // ambil ID pengguna dari Session
     mysqli_stmt_execute($stmt_profile);
     mysqli_stmt_bind_result($stmt_profile, $db_full_name, $db_address, $db_phone_number, $db_email);
-    if (mysqli_stmt_fetch($stmt_profile)) {
-        $user_full_name = htmlspecialchars($db_full_name ?? '');
+    if (mysqli_stmt_fetch($stmt_profile)) { // Jika data ditemukan
+        $user_full_name = htmlspecialchars($db_full_name ?? ''); // Isi variabel PHP dengan data dari DB
         $user_address = htmlspecialchars($db_address ?? '');
         $user_phone_number = htmlspecialchars($db_phone_number ?? '');
         $user_email = htmlspecialchars($db_email ?? '');

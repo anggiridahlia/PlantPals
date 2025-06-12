@@ -138,10 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
 
             // --- Mulai Transaksi Database ---
-            mysqli_autocommit($conn, FALSE); // Matikan autocommit
-            $success = true; // Set $success true di sini jika semua validasi lolos
+            mysqli_autocommit($conn, FALSE); // mencatat pesanan sementara di database
+            $success = true; // Kita asumsikan awalnya semua akan berhasil
 
-            // 1. Insert into orders table
+            // 1. Catat Pesanan Utama di tabel 'orders'
             $order_id = null;
             $order_status = 'pending'; // Status awal
             $sql_order = "INSERT INTO orders (user_id, total_amount, order_status, payment_method, delivery_address, customer_name, customer_phone, customer_email, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -159,11 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $confirmation_message = "Kesalahan internal: Tidak dapat menyiapkan query pesanan utama.";
             }
 
-            // 2. Insert into order_items table and Update product stock for EACH item
+            // 2. Jika pesanan utama berhasil, PHP akan memproses setiap barang satu per satu
             if ($success && $order_id) {
                 foreach ($products_to_process as $item) {
                     // Update stock
                     $new_stock = $item['current_stock'] - $item['quantity'];
+                    // a. KURANGI JUMLAH STOK BARANG di tabel 'products'
                     $sql_update_stock = "UPDATE products SET stock = ? WHERE id = ?";
                     if ($stmt_update_stock = mysqli_prepare($conn, $sql_update_stock)) {
                         mysqli_stmt_bind_param($stmt_update_stock, "ii", $new_stock, $item['id']);
@@ -179,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         break;
                     }
 
-                    // Insert into order_items
+                    // b. CATAT DETAIL BARANG INI di tabel 'order_items'
                     $sql_item = "INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity, store_id, store_name) VALUES (?, ?, ?, ?, ?, ?, ?)";
                     if ($stmt_item = mysqli_prepare($conn, $sql_item)) {
                         mysqli_stmt_bind_param($stmt_item, "iisddss", $order_id, $item['id'], $item['name'], $item['unit_price'], $item['quantity'], $item['store_id_string'], $item['store_name']);
@@ -199,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             // --- Commit or Rollback Transaction ---
             if ($success) {
-                mysqli_commit($conn);
+                mysqli_commit($conn); // Kalau SEMUA perintah di atas berhasil, BARU SIMPAN PERMANEN ke database!
                 $confirmation_message = "Pesanan Anda berhasil dikonfirmasi! ID Pesanan: #" . ($order_id ?? 'N/A') . ". Metode Pembayaran: " . (ucwords(str_replace('_', ' ', $payment_method)));
                 $confirmation_status_class = "success";
                 $icon_class = "fas fa-check-circle";
@@ -209,21 +210,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if (isset($_POST['checkout_items'])) {
                     foreach ($products_to_process as $item) {
                         if (isset($_SESSION['cart'][$item['id']])) {
-                            unset($_SESSION['cart'][$item['id']]);
+                            unset($_SESSION['cart'][$item['id']]); // KOSONGKAN keranjang belanja Anda di 'tiket' Session
+                            // Aplikasi akan menampilkan pesan "Pesanan Berhasil!"
                         }
                     }
                 }
 
             } else {
-                mysqli_rollback($conn);
+                mysqli_rollback($conn); // Kalau ADA SATU SAJA perintah yang GAGAL, BATALKAN SEMUA PERUBAHAN dalam transaksi ini!
                 if (empty($confirmation_message)) { // Jika belum ada pesan error spesifik
                     $confirmation_message = "Terjadi kesalahan yang tidak diketahui saat memproses pesanan Anda. Mohon coba lagi.";
                 }
                 $confirmation_status_class = "error";
                 $icon_class = "fas fa-times-circle";
-            }
+            } // Aplikasi akan menampilkan pesan "Pesanan Gagal!"
 
-            mysqli_autocommit($conn, TRUE); // Re-enable autocommit
+            mysqli_autocommit($conn, TRUE); // Balikin lagi ke mode simpan otomatis
+    }
         } // End if !empty($validation_errors) for product stock/price validation
     } // End if !empty($validation_errors) for initial form data
 
