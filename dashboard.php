@@ -1,5 +1,9 @@
 <?php
+
 session_start();
+
+//MASTIKAN SETUP DAN KONDISI LOGIN
+
 // Mengaktifkan tampilan error untuk debugging. Hapus atau set ke 0 untuk produksi.
 ini_set('display_errors', 0); // Ubah dari 1 menjadi 0 untuk menyembunyikan error di browser
 ini_set('display_startup_errors', 0); // Ubah dari 1 menjadi 0
@@ -23,10 +27,17 @@ $order_filter_status = isset($_GET['order_status']) ? htmlspecialchars($_GET['or
 include 'data.php'; // For initial product fallback data
 require_once 'config.php'; // Database connection, now opened once.
 
+//MASTIKAN SETUP DAN KONDISI LOGIN
+
+
+
 // Variabel untuk pesan pop-up
 $popup_message = "";
 $popup_status = ""; // 'success' or 'error'
 
+
+
+// MENGAMBIL DATA TOKO DARI DATABASE
 // --- Fetch Stores from Database and Organize by seller_user_id ---
 $stores_by_seller_id = [];
 // Select store's actual ID (s.id) to pass to chat
@@ -41,6 +52,10 @@ if ($result_stores) {
         $stores_by_seller_id[$seller_id_for_store][] = $row_store;
     }
 }
+// MENGAMBIL DATA TOKO DARI DATABASE
+
+
+
 // Fallback jika tidak ada toko yang terhubung ke seller di DB
 // Pastikan ID default seller ada di array stores_by_seller_id
 if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
@@ -51,6 +66,8 @@ if (empty($stores_by_seller_id) && isset($DEFAULT_FALLBACK_SELLER_ID)) {
 }
 
 
+
+# MENANGANI PENAMBAHAN PRODUK KE KERANJANG
 // --- Handle Add to Cart Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     $product_id = $_POST['product_id'] ?? null;
@@ -129,7 +146,15 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_to_cart') {
     header('Location: dashboard.php?page=' . $page . '&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+# MENANGANI PENAMBAHAN PRODUK KE KERANJANG
+# MENANGANI PENAMBAHAN PRODUK KE KERANJANG
 
+
+
+
+
+
+# MENANGANI UPDATE PRODUK KE KERANJANG
 // --- Handle Update Cart Quantity Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
     $product_id = $_POST['product_id'] ?? null;
@@ -168,7 +193,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_cart_quantity') {
     header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+# MENANGANI UPDATE PRODUK KE KERANJANG
+# MENANGANI UPDATE PRODUK KE KERANJANG
 
+
+
+#  MENANGANI HAPUS PRODUK DI KERANJANG
 // --- Handle Remove from Cart Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'remove_from_cart') {
     $product_id = $_POST['product_id'] ?? null;
@@ -183,7 +213,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'remove_from_cart') {
     header('Location: dashboard.php?page=cart&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+# MENANGANI HAPUS PRODUK DI KERANJANG
 
+
+
+
+
+// MENANGANI CANCEL ORDER
+// MENANGANI CANCEL ORDER
 // --- Handle Cancel Order Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
     $order_id_to_cancel = $_POST['order_id'] ?? null;
@@ -294,8 +331,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel_order') {
     header('Location: dashboard.php?page=orders&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+# MENANGANI CANCEL ORDER
+// MENANGANI CANCEL ORDER
 
 
+
+
+// UPDATE PROFIL
+// UPDATE PROFIL
 // --- Handle Update Profile Action ---
 if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     $user_id_to_update = $_SESSION['id'];
@@ -356,8 +399,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     header('Location: dashboard.php?page=profile&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+// UPDATE PROFIL
+// UPDATE PROFIL
 
 
+
+
+# MENANGNANI PENGIRIMAN PESAN
+# MENANGNANI PENGIRIMAN PESAN
 // --- Handle Send Message Action (NEW) ---
 if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
     $receiver_id = intval($_POST['receiver_id'] ?? 0); // Seller User ID
@@ -411,8 +460,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_message') {
     header('Location: dashboard.php?page=chat&seller_id=' . urlencode($receiver_id) . '&popup_message=' . urlencode($popup_message) . '&popup_status=' . urlencode($popup_status));
     exit();
 }
+# MENANGNANI PENGIRIMAN PESAN
+# MENANGNANI PENGIRIMAN PESAN
 
 
+
+
+# MENGAMBIL SEMUA DAFTAR PRODUK UNTUK TAMPILAN HALAMAN
+# MENGAMBIL SEMUA DAFTAR PRODUK UNTUK TAMPILAN HALAMAN
 // --- Fetch Products from Database for all pages ---
 $flowers_from_db = [];
 // NEW: Select 'category_name' from products joined with categories
@@ -463,8 +518,13 @@ if (empty($flowers_from_db)) {
 } else {
     $flowers_to_display = $flowers_from_db;
 }
+# MENGAMBIL SEMUA DAFTAR PRODUK UNTUK TAMPILAN HALAMAN
+# MENGAMBIL SEMUA DAFTAR PRODUK UNTUK TAMPILAN HALAMAN
 
 
+
+
+# MENGAMBIL DAFTAR PRODUK UNGGULAN UNTUK TAMPILAN HALAMAN
 // --- Fetch Featured Products (Only for home page) ---
 $featured_products = [];
 if ($page == 'home') { // Only fetch if on home page
@@ -484,7 +544,11 @@ if ($page == 'home') { // Only fetch if on home page
         }
     }
 }
+# MENGAMBIL DAFTAR PRODUK UNGGULAN UNTUK TAMPILAN HALAMAN
 
+
+
+# MENGAMBIL DAFTAR KATEGORI UNTUK FILTERING
 // NEW: Get all unique categories for filtering
 $all_categories = [];
 $sql_all_categories = "SELECT name FROM categories ORDER BY name ASC";
@@ -494,6 +558,8 @@ if ($result_all_categories) {
         $all_categories[] = $row_cat['name'];
     }
 }
+# MENGAMBIL DAFTAR KATEGORI UNTUK FILTERING
+
 
 
 // Check for popup messages from redirect
@@ -502,6 +568,9 @@ if (isset($_GET['popup_message']) && isset($_GET['popup_status'])) {
     $popup_status = urldecode($_GET['popup_status']);
 }
 
+
+
+# HITUNG TOKO YANG DIIKUTI PEMBELI
 // NEW: Fetch number of followed stores for profile page
 $total_followed_stores = 0;
 if ($page == 'profile') {
@@ -515,7 +584,10 @@ if ($page == 'profile') {
         mysqli_stmt_close($stmt_followed);
     }
 }
+# HITUNG TOKO YANG DIIKUTI PEMBELI
 
+
+# HITUNG PESAN BELUM DIBACA
 // NEW: Fetch unread messages count for sidebar badge
 $unread_messages_count = 0;
 $sql_unread = "SELECT COUNT(id) FROM messages WHERE receiver_id = ? AND is_read = 0";
@@ -527,6 +599,7 @@ if ($stmt_unread = mysqli_prepare($conn, $sql_unread)) {
     $unread_messages_count = $count_unread;
     mysqli_stmt_close($stmt_unread);
 }
+# HITUNG PESAN BELUM DIBACA
 
 
 // All DB queries are now before HTML output.
